@@ -1,6 +1,6 @@
 import requests, json, time, datetime
 
-api_key = '9c1bd680a0f8c595514dfdbfa1208eb4'
+api_key = 'saved locally on my machine'
 
 base_url = 'http://api.openweathermap.org/data/2.5/weather?'
 
