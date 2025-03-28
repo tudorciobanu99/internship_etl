@@ -1,6 +1,8 @@
-import requests, json, time, datetime
+import requests, json, time, datetime, os
+from dotenv import load_dotenv
 
-api_key = 'saved locally on my machine'
+load_dotenv("api_key.env")
+api_key = os.getenv('OPENWEATHER_API_KEY')
 
 base_url = 'http://api.openweathermap.org/data/2.5/weather?'
 
