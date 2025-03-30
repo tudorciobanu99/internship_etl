@@ -102,8 +102,8 @@ if __name__ == "__main__":
         country: {
             "latitude": coords['latitude'],
             "longitude": coords['longitude'],
-            "start_date": "2025-03-13",
-            "end_date": "2025-03-13",
+            "start_date": "2022-05-13",
+            "end_date": "2022-05-13",
             "hourly": ",".join(["temperature_2m", "relative_humidity_2m", "weather_code", "surface_pressure"]),
             "timezone": "Europe/Berlin"
         }
@@ -118,7 +118,7 @@ if __name__ == "__main__":
     params = {
         country: {
             "iso": "USA",
-            "date": "2020-05-13"
+            "date": "2022-05-13"
         }
     }
     fields = ["data/confirmed", "data/deaths", "data/recovered"]
