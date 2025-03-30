@@ -51,7 +51,7 @@ class APIWrapper:
 
             end_time = time.time()
 
-            log_entries.append(self.api_import_log(start_time, end_time, self.api_id, '1', code_response, error_message))
+            log_entries.append(self.api_import_log(start_time, end_time, self.api_id, 'test', code_response, error_message))
         
         self.save_import_log(log_entries)
         self.save_data()
@@ -112,6 +112,19 @@ if __name__ == "__main__":
 
     fields = ["hourly/temperature_2m", "hourly/relative_humidity_2m", "hourly/weather_code", "hourly/surface_pressure"]
     weather_api.fetch_data(country_coordinates, fields, **country_params)
+
+    covid_api = APIWrapper('2', "https://covid-api.com/api/reports/total")
+    country = "USA"
+    params = {
+        country: {
+            "iso": "USA",
+            "date": "2020-05-13"
+        }
+    }
+    fields = ["data/confirmed", "data/deaths", "data/recovered"]
+    covid_api.fetch_data([country], fields, **params)
+
+
 
 
 
