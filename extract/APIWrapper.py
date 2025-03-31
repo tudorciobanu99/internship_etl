@@ -71,24 +71,39 @@ class APIWrapper:
     def save_data(self, import_directory_name, import_file_name):
         now = datetime.datetime.now()
         formatted_time = now.strftime("%Y_%m_%d_%H_%M")
-        
+
+        if not os.path.exists(import_directory_name):
+            os.makedirs(import_directory_name)
+
         file_path = os.path.join(import_directory_name, import_file_name)
 
-        try:
-            with open(file_path, 'r') as file:
-                existing_data = json.load(file)
-        except FileNotFoundError:
-            print(f"File {file_path} not found.")
+        if os.path.exists(file_path):
+            try:
+                with open(file_path, 'r') as infile:
+                    existing_data = json.load(infile)
+            except json.JSONDecodeError:
+                existing_data = {}
+        else:
             existing_data = {}
-        
-        existing_data.update(self.data)
+
+        for country, data in self.data.items():
+            current_date = data.get("date") or data.get("time")
+            current_date = current_date[0] if isinstance(current_date, list) else current_date
+            if not current_date:
+                raise ValueError("Date field is missing in the data.")
+
+            if current_date not in existing_data:
+                existing_data[current_date] = {}
+
+            existing_data[current_date][country] = data
+
         with open(file_path, 'w') as outfile:
             json.dump(existing_data, outfile, indent=4)
-        
         print(f"Data has been saved to {file_path}!")
         return formatted_time
 
 
 
-        
-    
+
+
+

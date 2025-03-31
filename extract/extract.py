@@ -1,110 +1,102 @@
 # IMPORTS
 from APIWrapper import APIWrapper
-import requests, pandas as pd, psycopg2 as pg
+from database_connection import DatabaseConnection
+import pandas as pd
+import requests
 
 if __name__ == "__main__":
-
-    # Database connection
-    connection = pg.connect(
-        database = "etl",
-        user = "postgres",
-        host = "localhost",
-        password = "Darkmaster1999",
-        port = "5432",
+    my_db = DatabaseConnection(
+        dbname="etl",
+        user="postgres",
+        host="localhost",
+        password="Darkmaster1999",
+        port=5432,
     )
 
-    cursor = connection.cursor()
-    print("Connection successful!")
+    # Fetching the API information from the database
+    api_info = my_db.fetch_data("SELECT * FROM extract.api_info")
+    columns = my_db.fetch_data("SELECT column_name FROM information_schema.columns WHERE table_name = 'api_info'")
+    columns = [col[0] for col in columns]
+    api_info = pd.DataFrame(api_info, columns = columns)
 
-    cursor.execute("SELECT id, code, latitude, longitude FROM extract.country;")
-    rows = cursor.fetchall()
+    weather_api_info = api_info[api_info["api_name"] == "Weather API"]
+    weather_api = APIWrapper(
+        api_id=weather_api_info["id"].values[0],
+        base_url=weather_api_info["api_base_url"].values[0],
+    )
 
-    print(rows)
+    covid_api_info = api_info[api_info["api_name"] == "COVID API"]
+    covid_api = APIWrapper(
+        api_id=covid_api_info["id"].values[0],
+        base_url=covid_api_info["api_base_url"].values[0],
+    )
 
-    columns = ["id", "code", "latitude", "longitude"]
-    df = pd.DataFrame(rows, columns=columns)
-    
-    codes = df['code'].tolist()
-    latitudes = df['latitude'].tolist()
-    longitudes = df['longitude'].tolist()
+    # Fetching the countries and fields from the database
+    countries = my_db.fetch_data("SELECT id, code, latitude, longitude FROM extract.country")
+    countries = pd.DataFrame(countries, columns=["id", "code", "latitude", "longitude"])
 
-    country_params = {
-        code: {
-            "latitude": float(lat),
-            "longitude": float(lon),
-            "start_date": "2022-05-13",
-            "end_date": "2022-05-13",
-            "hourly": ",".join(["temperature_2m", "relative_humidity_2m", "weather_code", "surface_pressure"]),
-            "timezone": "Europe/Berlin"
+    # Preparation of the API parameters
+    weather_params = {
+        country["code"]: {
+            "latitude": float(country["latitude"]),
+            "longitude": float(country["longitude"]),
+            "start_date": "2023-01-06",
+            "end_date": "2023-01-06",
+            "daily": ",".join(["weather_code", "temperature_2m_mean", "surface_pressure_mean", "relative_humidity_2m_mean"]),
+            "timezone": "Europe/Berlin",
         }
-        for code, lat, lon in zip(codes, latitudes, longitudes)
+        for _, country in countries.iterrows()
     }
 
-    # print(country_params)
+    covid_params = {
+        country["code"]: {
+            "iso": country["code"],
+            "date": "2023-01-06",
+        }
+        for _, country in countries.iterrows()
+    }
 
-    weather_api = APIWrapper('1', "https://historical-forecast-api.open-meteo.com/v1/forecast")
-    error_field = "reason"
-    import_log = weather_api.fetch_data(codes, ["hourly/temperature_2m", "hourly/relative_humidity_2m", "hourly/weather_code", "hourly/surface_pressure"], error_field,  **country_params)
-    print(import_log)
-    # complete_url = weather_api.get_endpoint(**country_params['USA'])
-    # response = requests.get(complete_url)
-    # x = response.json()
-    # print(x)
+    # Fields to be extracted from the APIs
+    weather_fields = [
+        "daily/weather_code",
+        "daily/temperature_2m_mean",
+        "daily/surface_pressure_mean",
+        "daily/relative_humidity_2m_mean",
+        "daily/time"
+    ]
 
-    # covid_api = APIWrapper('2', "https://covid-api.com/api/reports/total")
-    # params = {
-    #     "country": {
-    #         "iso": "DEU",
-    #         "date": "2022-05-13",
-    #     }
-    # }
+    weather_error_field = "reason"
 
-    # fields = ["data/confirmed", "data/deaths", "data/recovered"]
-    # error_field = "error"
-    # import_log = covid_api.fetch_data(['country'], fields, error_field, **params)
-    # print(import_log)
+    covid_fields = [
+        "data/confirmed",
+        "data/deaths",
+        "data/recovered",
+        "data/active",
+        "data/date"
+    ]
 
+    covid_error_field = "error"
 
+    # Connecting to the APIs and fetching data
+    weather_import_log_data = weather_api.fetch_data(
+        countries=countries["code"].tolist(),
+        fields=weather_fields,
+        error_field=weather_error_field,
+        **weather_params
+    )
+    covid_import_log_data = covid_api.fetch_data(
+        countries=countries["code"].tolist(),
+        fields=covid_fields,
+        error_field=covid_error_field,
+        **covid_params
+    )
 
-    # country_coordinates = {
-    #     'Moldova': {'latitude': 47.4116, 'longitude': 28.3699},
-    #     'Germany': {'latitude': 52.5200, 'longitude': 13.4050},
-    #     'France': {'latitude': 48.8566, 'longitude': 2.3522}
-    # }
+    # Saving the data to JSON files
+    time_weather = weather_api.save_data('../raw/weather_data', 'weather_data.json')
+    time_covid = covid_api.save_data('../raw/covid_data', 'covid_data.json')
 
-    # country_params = {
-    #     country: {
-    #         "latitude": coords['latitude'],
-    #         "longitude": coords['longitude'],
-    #         "start_date": "2022-05-13s",
-    #         "end_date": "2022-05-13",
-    #         "hourly": ",".join(["temperature_2m", "relative_humidity_2m", "weather_code", "surface_pressure"]),
-    #         "timezone": "Europe/Berlin"
-    #     }
-    #     for country, coords in country_coordinates.items()
-    # }
-
-    # weather_api = APIWrapper('1', "https://historical-forecast-api.open-meteo.com/v1/forecast")
-
-    # fields = ["hourly/temperature_2m", "hourly/relative_humidity_2m", "hourly/weather_code", "hourly/surface_pressure"]
-    # weather_api.fetch_data(country_coordinates, fields, **country_params)
-
-    # covid_api = APIWrapper('2', "https://covid-api.com/api/reports/total")
-    # country = "DE"
-    # params = {
-    #     country: {
-    #         "iso": "DE",
-    #         "date": "2022-05-13",
-    #     }
-    # }
-
-    # complete_url = covid_api.get_endpoint(**params['DE'])
-    # response = requests.get(complete_url)
-    # x = response.json()
-    # print(x)
-
-    # fields = ["data/confirmed", "data/deaths", "data/recovered"]
-    # covid_api.fetch_data([country], fields, **params)
+    my_db.close_connection()
+    
 
 
 
