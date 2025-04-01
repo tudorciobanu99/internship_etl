@@ -68,7 +68,7 @@ class APIWrapper:
         }
         return import_log_data
 
-    def save_data(self, import_directory_name, import_file_name):
+    def save_data(self, import_directory_name, import_file_name, batch_date):
 
         if not os.path.exists(import_directory_name):
             os.makedirs(import_directory_name)
@@ -85,15 +85,10 @@ class APIWrapper:
             existing_data = {}
 
         for country, data in self.data.items():
-            current_date = data.get("date") or data.get("time")
-            current_date = current_date[0] if isinstance(current_date, list) else current_date
-            if not current_date:
-                raise ValueError("Date field is missing in the data.")
+            if batch_date not in existing_data:
+                existing_data[batch_date] = {}
 
-            if current_date not in existing_data:
-                existing_data[current_date] = {}
-
-            existing_data[current_date][country] = data
+            existing_data[batch_date][country] = data
 
         with open(file_path, 'w') as outfile:
             json.dump(existing_data, outfile, indent=4)

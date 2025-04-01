@@ -124,12 +124,12 @@ if __name__ == "__main__":
     #save_api_import_log(weather_import_log_data, my_db)
     #save_api_import_log(covid_import_log_data, my_db)
 
-    def get_json_row_count(file_path, country_code):
+    def get_json_row_count(file_path, country_code, batch_date):
         try:
             with open(file_path, 'r') as file:
                 data = json.load(file)
 
-            row_count = sum(1 for date, countries in data.items() if country_code in countries)
+            row_count = sum(1 for date, countries in data.items() if date == batch_date and country_code in countries)
             return row_count
         except FileNotFoundError:
             print(f"File not found: {file_path}")
