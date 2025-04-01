@@ -92,8 +92,37 @@ if __name__ == "__main__":
     )
 
     # Saving the data to JSON files
-    time_weather = weather_api.save_data('../raw/weather_data', 'weather_data.json')
-    time_covid = covid_api.save_data('../raw/covid_data', 'covid_data.json')
+    # time_weather = weather_api.save_data('../raw/weather_data', 'weather_data.json')
+    # time_covid = covid_api.save_data('../raw/covid_data', 'covid_data.json')
+
+    def save_api_import_log(import_log_data):
+        api_id = import_log_data["api_id"]
+        countries = import_log_data["countries"]
+        start_time = import_log_data["start_time"]
+        end_time = import_log_data["end_time"]
+        code_response = import_log_data["response_codes"]
+        error_message = import_log_data["error_messages"]
+
+        countries_id = my_db.fetch_data(
+            f"""
+            SELECT id FROM extract.country WHERE code IN ({', '.join(f"'{country}'" for country in countries)})
+            """
+        )
+        countries_id = [int(country[0]) for country in countries_id]
+
+        for country, code, error in zip(countries_id, code_response, error_message):
+            query = f"""
+                INSERT INTO extract.api_import_log (country_id, api_id, start_time, end_time, code_response, error_message)
+                VALUES ({country}, {int(api_id)}, '{start_time}', '{end_time}', {code}, '{error}')
+                """
+            my_db.cursor.execute(query)
+            my_db.connection.commit()
+
+    # Save the import log data to the database
+    #save_api_import_log(weather_import_log_data)
+    #save_api_import_log(covid_import_log_data)
+
+    
 
     my_db.close_connection()
     
