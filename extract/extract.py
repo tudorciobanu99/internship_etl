@@ -126,11 +126,9 @@ if __name__ == "__main__":
 
     def get_json_row_count(file_path, country_code):
         try:
-            # Open and load the JSON file
             with open(file_path, 'r') as file:
                 data = json.load(file)
 
-            # Count the total number of rows
             row_count = sum(1 for date, countries in data.items() if country_code in countries)
             return row_count
         except FileNotFoundError:
