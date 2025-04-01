@@ -1,3 +1,4 @@
-api_key.env
+database_password.env
 .DS_Store
 raw/
+database/
