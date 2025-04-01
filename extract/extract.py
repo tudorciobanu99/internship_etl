@@ -2,7 +2,7 @@
 from APIWrapper import APIWrapper
 from database_connection import DatabaseConnection
 import pandas as pd
-import requests
+import requests, datetime, os, json
 
 if __name__ == "__main__":
     my_db = DatabaseConnection(
@@ -30,6 +30,8 @@ if __name__ == "__main__":
         api_id=covid_api_info["id"].values[0],
         base_url=covid_api_info["api_base_url"].values[0],
     )
+
+    batch_date = '2023-01-06'
 
     # Fetching the countries and fields from the database
     countries = my_db.fetch_data("SELECT id, code, latitude, longitude FROM extract.country")
@@ -92,10 +94,10 @@ if __name__ == "__main__":
     )
 
     # Saving the data to JSON files
-    # time_weather = weather_api.save_data('../raw/weather_data', 'weather_data.json')
-    # time_covid = covid_api.save_data('../raw/covid_data', 'covid_data.json')
+    # weather_api.save_data('../raw/weather_data', 'weather_data.json')
+    # covid_api.save_data('../raw/covid_data', 'covid_data.json')
 
-    def save_api_import_log(import_log_data):
+    def save_api_import_log(import_log_data, db):
         api_id = import_log_data["api_id"]
         countries = import_log_data["countries"]
         start_time = import_log_data["start_time"]
@@ -103,7 +105,7 @@ if __name__ == "__main__":
         code_response = import_log_data["response_codes"]
         error_message = import_log_data["error_messages"]
 
-        countries_id = my_db.fetch_data(
+        countries_id = db.fetch_data(
             f"""
             SELECT id FROM extract.country WHERE code IN ({', '.join(f"'{country}'" for country in countries)})
             """
@@ -115,14 +117,79 @@ if __name__ == "__main__":
                 INSERT INTO extract.api_import_log (country_id, api_id, start_time, end_time, code_response, error_message)
                 VALUES ({country}, {int(api_id)}, '{start_time}', '{end_time}', {code}, '{error}')
                 """
-            my_db.cursor.execute(query)
-            my_db.connection.commit()
+            db.cursor.execute(query)
+            db.connection.commit()
 
     # Save the import log data to the database
-    #save_api_import_log(weather_import_log_data)
-    #save_api_import_log(covid_import_log_data)
+    #save_api_import_log(weather_import_log_data, my_db)
+    #save_api_import_log(covid_import_log_data, my_db)
 
-    
+    def get_json_row_count(file_path, country_code):
+        try:
+            # Open and load the JSON file
+            with open(file_path, 'r') as file:
+                data = json.load(file)
+
+            # Count the total number of rows
+            row_count = sum(1 for date, countries in data.items() if country_code in countries)
+            return row_count
+        except FileNotFoundError:
+            print(f"File not found: {file_path}")
+            return 0
+        except json.JSONDecodeError:
+            print(f"Invalid JSON format in file: {file_path}")
+        return 0
+
+    # Save the import log data to the database
+    def save_import_log(batch_date, import_log_data, import_directory_name, import_file_name, db):
+        countries = import_log_data["countries"]
+        api_id = import_log_data["api_id"]
+
+
+        countries_id = db.fetch_data(
+            f"""
+            SELECT id FROM extract.country WHERE code IN ({', '.join(f"'{country}'" for country in countries)})
+            """
+        )
+        countries_id = [int(country[0]) for country in countries_id]
+
+        existing_record = db.fetch_data(
+        f"""
+        SELECT file_created_date FROM extract.import_log
+        WHERE import_directory_name = '{import_directory_name}' AND import_file_name = '{import_file_name}'
+        LIMIT 1
+        """
+        )
+
+        now = datetime.datetime.now()
+        file_last_modified_date = now.strftime("%Y-%m-%d")
+
+        # Determine the file_created_date
+        if existing_record:
+            file_created_date = existing_record[0][0]
+        else:
+            file_created_date = file_last_modified_date
+
+        for i in range(len(countries_id)):
+            query = f"""
+                INSERT INTO extract.import_log (
+                    batch_date, country_id, import_directory_name, import_file_name,
+                    file_created_date, file_last_modified_date, row_count
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """
+
+            row_count = get_json_row_count(os.path.join(import_directory_name, import_file_name), countries[i])
+        # Execute the query with parameterized values
+            db.cursor.execute(query, (
+                batch_date, countries_id[i], import_directory_name, import_file_name,
+                file_created_date, file_last_modified_date, row_count
+            ))
+        db.connection.commit()
+
+    import_directory_name = "../raw/weather_data"
+    import_file_name = "weather_data.json"
+    save_import_log(batch_date, weather_import_log_data, import_directory_name, import_file_name, my_db)
 
     my_db.close_connection()
     

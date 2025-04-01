@@ -69,8 +69,6 @@ class APIWrapper:
         return import_log_data
 
     def save_data(self, import_directory_name, import_file_name):
-        now = datetime.datetime.now()
-        formatted_time = now.strftime("%Y_%m_%d_%H_%M")
 
         if not os.path.exists(import_directory_name):
             os.makedirs(import_directory_name)
@@ -100,7 +98,6 @@ class APIWrapper:
         with open(file_path, 'w') as outfile:
             json.dump(existing_data, outfile, indent=4)
         print(f"Data has been saved to {file_path}!")
-        return formatted_time
 
 
 
