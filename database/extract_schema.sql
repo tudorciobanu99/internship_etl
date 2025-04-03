@@ -5,22 +5,20 @@ CREATE TABLE extract.country (
 	id SERIAL PRIMARY KEY,
     code VARCHAR(10) NOT NULL, -- (ISO code)
     name VARCHAR(100) NOT NULL
+    latitude DECIMAL(9,6) NOT NULL,
+    latitude DECIMAL(9,6) NOT NULL,
+    capital VARCHAR(50) NOT NULL
 )
-
-ALTER TABLE extract.country
-ADD COLUMN latitude DECIMAL(9,6) NOT NULL,
-ADD COLUMN longitude DECIMAL(9,6) NOT NULL,
-ADD COLUMN capital VARCHAR(50) NOT NULL;
 
 CREATE TABLE extract.import_log (
     id SERIAL PRIMARY KEY,
     batch_date DATE NOT NULL,
     country_id INT NOT NULL,
-    import_directory_name VARCHAR(100) NOT NULL,
-    import_file_name VARCHAR(100) NOT NULL,
-    file_created_date DATE NOT NULL,
-    file_last_modified_date DATE NOT NULL,
-    row_count INT NOT NULL,
+    import_directory_name VARCHAR(100),
+    import_file_name VARCHAR(100),
+    file_created_date DATE,
+    file_last_modified_date DATE,
+    row_count INT,
     FOREIGN KEY (country_id) REFERENCES extract.country(id)
 )
 
@@ -35,8 +33,8 @@ CREATE TABLE extract.api_import_log (
     country_id INT NOT NULL,
     api_id INT NOT NULL,
     start_time TIMESTAMP NOT NULL,
-    end_time TIMESTAMP NOT NULL,
-    code_response INT NOT NULL,
+    end_time TIMESTAMP,
+    code_response INT,
     error_message TEXT,
     FOREIGN KEY (country_id) REFERENCES extract.country(id),
     FOREIGN KEY (api_id) REFERENCES extract.api_info(id)
