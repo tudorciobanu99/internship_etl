@@ -4,7 +4,6 @@ class covid_api:
     def __init__(self, api_id, base_url):
         self.base_url = base_url
         self.api_id = api_id
-        self.data = {}
 
     def get_endpoint(self, **params):
         query_string = '&'.join([f'{key}={value}' for key, value in params.items()])
