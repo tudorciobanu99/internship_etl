@@ -4,7 +4,6 @@ class weather_api:
     def __init__(self, api_id, base_url):
         self.base_url = base_url
         self.api_id = api_id
-        self.data = {}
 
     def get_endpoint(self, **params):
         query_string = '&'.join([f'{key}={value}' for key, value in params.items()])
@@ -61,15 +60,18 @@ class weather_api:
         error_message = ''
         end_time = ''
 
+        response_body = None        
+
         try:
             json_response = response.json()
             end_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
             code_response = response.status_code
+            response_body = json_response
 
             error_message = json_response.get('reason') or ''
 
             if code_response == 200:
-                self.data[country['code']] = json_response
+                print(f"Valid response received for country: {country['code']}")
             elif 400 <= code_response < 500:
                 print(f"Client error occurred. HTTP Response Code: {code_response}. Error details: {error_message}.")
             elif 500 <= code_response < 600:
@@ -79,8 +81,8 @@ class weather_api:
         except Exception as e:
             error_text = response.text
             end_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
-            self.data[country['code']] = error_text
+            response_body = error_text
             error_message = "Not Found"
 
         print(f"Country: {country['code']}, HTTP Response Code: {code_response}, Error Message: {error_message}")
-        return end_time, code_response, error_message
+        return end_time, code_response, error_message, response_body

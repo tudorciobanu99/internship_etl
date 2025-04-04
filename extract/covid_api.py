@@ -32,17 +32,20 @@ class covid_api:
         code_response = 404
         error_message = ''
         end_time = ''
+
+        response_body = None 
         
         try:
             json_response = response.json()
             end_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
             code_response = response.status_code
+            response_body = json_response
 
             if isinstance(json_response.get('error'), dict):
                 error_message = ', '.join(f"{', '.join(value)}" for key, value in json_response['error'].items())
 
             if code_response == 200:
-                self.data[country['code']] = json_response
+                print(f"Valid response received for country: {country['code']}")
             elif 400 <= code_response < 500:
                 print(f"Client error occurred. HTTP Response Code: {code_response}. Error details: {error_message}.")
             elif 500 <= code_response < 600:
@@ -52,12 +55,12 @@ class covid_api:
         except Exception as e:
             error_text = response.text
             end_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
-            self.data[country['code']] = error_text
+            response_body = error_text
             error_message = "Not Found"
 
         print(f"Country: {country['code']}, HTTP Response Code: {code_response}, Error Message: {error_message}")
         
-        return end_time, code_response, error_message
+        return end_time, code_response, error_message, response_body
 
 
 
