@@ -24,7 +24,7 @@ def get_json_row_count(import_directory_name, import_file_name, country_code):
         
         total_rows = 0
         if not data:
-            print(f"Empty dictionary!")
+            print(f"Empty dictionary! Total rows: {total_rows}")
         else:
             if isinstance(data[country_code], str):
                 total_rows += len(data[country_code].split('\n'))  # Count lines in string
@@ -102,7 +102,7 @@ if __name__ == "__main__":
         base_url=covid_api_info["api_base_url"].values[0],
     )
 
-    batch_date = "2025-04-09"
+    batch_date = "2025-04-04"
     date = batch_date.replace("2025", "2022")
 
     countries = my_db.fetch_countries()
