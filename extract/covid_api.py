@@ -50,7 +50,9 @@ class covid_api:
             else:
                 print(f"Unexpected error occurred. HTTP Response Code: {code_response}. Error details: {error_message}.")
         except Exception as e:
+            error_text = response.text
             end_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+            self.data[country['code']] = error_text
             error_message = "Not Found"
 
         print(f"Country: {country['code']}, HTTP Response Code: {code_response}, Error Message: {error_message}")
