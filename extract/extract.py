@@ -2,7 +2,7 @@
 from covid_api import covid_api
 from weather_api import weather_api
 from databaseconnection import databaseconnection
-import os, json
+import os, json, datetime
 from dotenv import load_dotenv
 
 def save_to_json(data, import_directory_name, import_file_name):
@@ -106,7 +106,7 @@ if __name__ == "__main__":
         base_url=covid_api_info["api_base_url"].values[0],
     )
 
-    batch_date = "2025-04-04"
+    batch_date = datetime.now().strftime("%Y-%m-%d")
     date = batch_date.replace("2025", "2022")
 
     countries = my_db.fetch_countries()
