@@ -26,13 +26,16 @@ def get_json_row_count(import_directory_name, import_file_name, country_code):
         if not data:
             print(f"Empty dictionary!")
         else:
-            for sub_key, sub_content in data[country_code].items():
-                if isinstance(sub_content, (dict, list)):
-                    row_count = len(sub_content)
-                    total_rows += row_count
-                else:
-                    total_rows += 1
-            print(f"Total rows for {'DEU'}: {total_rows}")
+            if isinstance(data[country_code], str):
+                total_rows += len(data[country_code].split('\n'))  # Count lines in string
+            else:
+                for sub_key, sub_content in data[country_code].items():
+                    if isinstance(sub_content, (dict, list)):
+                        row_count = len(sub_content)
+                        total_rows += row_count
+                    else:
+                        total_rows += 1
+            print(f"Total rows for {country_code}: {total_rows}")
         return total_rows
     except FileNotFoundError:
         print(f"File not found: {file_path}")
@@ -99,7 +102,7 @@ if __name__ == "__main__":
         base_url=covid_api_info["api_base_url"].values[0],
     )
 
-    batch_date = "2025-04-07"
+    batch_date = "2025-04-09"
     date = batch_date.replace("2025", "2022")
 
     countries = my_db.fetch_countries()
