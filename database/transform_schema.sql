@@ -1,5 +1,5 @@
 -- This script creates the schema and tables for the transform process
-CREATE SCHEMA extract;
+CREATE SCHEMA transform;
 
 CREATE TABLE transform.transform_log(
     id SERIAL PRIMARY KEY,
