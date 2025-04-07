@@ -1,6 +1,8 @@
+import sys, os, json, datetime, shutil
 from databaseconnection import databaseconnection
-import os, json, datetime, shutil
 from dotenv import load_dotenv
+sys.path.append('../extract')
+from extract import get_json_row_count
 
 def list_all_files_from_directory(directory):
     files = []
@@ -8,35 +10,6 @@ def list_all_files_from_directory(directory):
         for filename in filenames:
             files.append(os.path.join(root, filename))
     return files
-
-def get_json_row_count(import_directory_name, import_file_name):
-    try:
-        file_path = os.path.join(import_directory_name, import_file_name)
-
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-        
-        total_rows = 0
-        if not data:
-            print(f"Empty dictionary! Total rows: {total_rows}")
-        else:
-            if isinstance(data, str):
-                total_rows += 1
-            else:
-                for sub_key, sub_content in data.items():
-                    if isinstance(sub_content, (dict, list)):
-                        row_count = len(sub_content)
-                        total_rows += row_count
-                    else:
-                        total_rows += 1
-            print(f"Total rows: {total_rows}")
-        return total_rows
-    except FileNotFoundError:
-        print(f"File not found: {file_path}")
-        return 0
-    except json.JSONDecodeError:
-        print(f"Invalid JSON format in file: {file_path}")
-    return 0
 
 def get_file_details(file):
     country_code = file.split('/')[-1].split('_')[2]
