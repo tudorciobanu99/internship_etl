@@ -177,10 +177,8 @@ cython_debug/
 database_password.env
 
 # Folders
-raw/
 myenv/
-processed/
-error/
+data/
 
 # DS_Store
 .DS_Store

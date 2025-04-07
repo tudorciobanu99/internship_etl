@@ -111,8 +111,8 @@ if __name__ == "__main__":
     date = batch_date.replace("2025", "2022")
 
     countries = my_db.fetch_countries()
-    weather_import_directory_name = '../raw/weather_data'
-    covid_import_directory_name = '../raw/covid_data'
+    weather_import_directory_name = '../data/raw/weather_data'
+    covid_import_directory_name = '../data/raw/covid_data'
     weather_import_file_name = 'weather_data'
     covid_import_file_name = 'covid_data'
     
