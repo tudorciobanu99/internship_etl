@@ -18,7 +18,7 @@ CREATE TABLE transform.weather_data_import(
     date DATE NOT NULL,
     weather_code VARCHAR(10) NOT NULL,
     mean_temperature DECIMAL(5,2) NOT NULL,
-    mean_surface_pressure DECIMAL(5,2) NOT NULL,
+    mean_surface_pressure DECIMAL(6,2) NOT NULL,
     precipitation_sum DECIMAL(5,2) NOT NULL,
     relative_humidity DECIMAL(5,2) NOT NULL,
     wind_speed DECIMAL(5,2) NOT NULL,
