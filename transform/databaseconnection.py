@@ -60,9 +60,9 @@ class databaseconnection:
             print(f"An error occurred: {e}.")
 
     def insert_weather_data(self, country_id, date, weather_code, mean_temperature, mean_surface_pressure, precipitation_sum, relative_humidity, wind_speed):
-        id = self.weather_data_unique(country_id, date)
+        id = self.unique_record('transform.weather_data_import', country_id, date)
 
-        if id == True:
+        if id is True:
             query = f"""
             INSERT INTO transform.weather_data_import (country_id, date, weather_code, mean_temperature, mean_surface_pressure, precipitation_sum, relative_humidity, wind_speed)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
@@ -84,18 +84,31 @@ class databaseconnection:
 
 
     def insert_covid_data(self, country_id, date, confirmed_cases, deaths, recovered):
-        query = f"""
-            INSERT INTO transform.covid_data_import (country_id, date, confirmed_cases, deaths, recovered)
-            VALUES (%s, %s, %s, %s, %s)
-            """
-        self.cursor.execute(query, (int(country_id), date, int(confirmed_cases), int(deaths), int(recovered)))
-        self.connection.commit()
-        print('Covid data record has been added!')
+        id = self.unique_record('transform.covid_data_import', country_id, date)
 
-    def weather_data_unique(self, country_id, date):
+        if id is True:
+            query = f"""
+                INSERT INTO transform.covid_data_import (country_id, date, confirmed_cases, deaths, recovered)
+                VALUES (%s, %s, %s, %s, %s)
+                """
+            self.cursor.execute(query, (int(country_id), date, int(confirmed_cases), int(deaths), int(recovered)))
+            self.connection.commit()
+            print('Covid data record has been added!')
+        else:
+            print(f"Covid data for country_id {country_id} and date {date} already exists with ID {id}.")
+            query = f"""
+                UPDATE transform.covid_data_import
+                SET confirmed_cases = %s, deaths = %s, recovered = %s
+                WHERE id = {id};
+                """
+            self.cursor.execute(query, (int(confirmed_cases), int(deaths), int(recovered)))
+            self.connection.commit()
+            print('Covid data record has been updated!')
+
+    def unique_record(self, table, country_id, date):
         query = f"""
             SELECT id
-            FROM transform.weather_data_import
+            FROM {table}
             WHERE country_id = {int(country_id)} AND date = '{date}'
             """
         self.cursor.execute(query)
