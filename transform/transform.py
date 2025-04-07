@@ -1,5 +1,5 @@
 from databaseconnection import databaseconnection
-import os, json, datetime
+import os, json, datetime, shutil
 from dotenv import load_dotenv
 
 def list_all_files_from_directory(directory):
@@ -8,16 +8,6 @@ def list_all_files_from_directory(directory):
         for filename in filenames:
             files.append(os.path.join(root, filename))
     return files
-
-def save_to_json(data, import_directory_name, import_file_name):
-        if not os.path.exists(import_directory_name):
-            os.makedirs(import_directory_name)
-
-        file_path = os.path.join(import_directory_name, import_file_name)
-
-        with open(file_path, 'w') as outfile:
-            json.dump(data, outfile, indent=4)
-        print(f"Data has been saved to {file_path}!")
 
 def get_json_row_count(import_directory_name, import_file_name):
     try:
@@ -48,169 +38,139 @@ def get_json_row_count(import_directory_name, import_file_name):
         print(f"Invalid JSON format in file: {file_path}")
     return 0
 
-def routine(countries, db):
-    files_weather = list_all_files_from_directory('../raw/weather_data')
-    files_covid = list_all_files_from_directory('../raw/covid_data')
+def get_file_details(file):
+    country_code = file.split('/')[-1].split('_')[2]
+    batch_date = file.split('/')[-1].split('_')[3].split('.')[0]
+    return country_code, batch_date
 
-    for file in files_weather:
-        print('\n')
-        print(f"Processing weather file: {file}")
+def open_file(file):
+    data = None
+    with open(file, 'r') as f:
+        data = json.load(f)
+    return data
 
-        status = 'error'
+
+def process_weather_file(file, country_code, batch_date, countries, db):
+    status = 'error'
+    file_name = file.split('/')[-1]
+    processed_directory_name = '../data/error/weather_data/'
+
+    if country_code not in countries['code'].values:
+        print(f"Country code {country_code} not found in countries list.")
+    else:
+        country_id = countries[countries['code'] == country_code]['id'].values[0]
+        print(f"Country ID: {country_id}")
         
-        country_code = file.split('/')[-1].split('_')[2]
-        batch_date = file.split('/')[-1].split('_')[3].split('.')[0]
+        try:
+            db.insert_initial_transform_log(batch_date, country_id, 'processing')
 
-        if country_code not in countries['code'].values:
-            print(f"Country code {country_code} not found in countries list.")
-        else:
-            country_id = countries[countries['code'] == country_code]['id'].values[0]
-            print(f"Country code: {country_code}")
-            print(f"Country ID: {country_id}")
+            data = open_file(file)
 
-            try:
-                db.insert_initial_transform_log(batch_date, country_id, 'processing')
+            if not data:
+                print(f"No data found in file: {file}")
+            elif isinstance(data, str):
+                print(f"Invalid expected data format in file: {file}")
+            else:
+                try:
+                    date = data['daily']['time'][0]
+                    weather_code = data['daily']['weather_code'][0]
+                    mean_temperature = data['daily']['temperature_2m_mean'][0]
+                    mean_surface_pressure = data['daily']['surface_pressure_mean'][0]
+                    precipitation_sum = data['daily']['precipitation_sum'][0]
+                    relative_humidity = data['daily']['relative_humidity_2m_mean'][0]
+                    wind_speed = data['daily']['wind_speed_10m_mean'][0]
 
-                with open(file, 'r') as f:
-                    data = json.load(f)
-
-                if not data:
-                    print(f"No data found in file: {file}")
-                elif isinstance(data, str):
-                    print(f"Invalid expected data format in file: {file}")
-                else:
-                    weather_data_subset = []
-                    try:
-                        date = data['daily']['time']
-                        weather_code = data['daily']['weather_code']
-                        mean_temperature = data['daily']['temperature_2m_mean']
-                        mean_surface_pressure = data['daily']['surface_pressure_mean']
-                        precipitation_sum = data['daily']['precipitation_sum']
-                        relative_humidity = data['daily']['relative_humidity_2m_mean']
-                        wind_speed = data['daily']['wind_speed_10m_mean']
-
-                        weather_data_subset.append(date)
-                        weather_data_subset.append(weather_code)
-                        weather_data_subset.append(mean_temperature)
-                        weather_data_subset.append(mean_surface_pressure)
-                        weather_data_subset.append(precipitation_sum)
-                        weather_data_subset.append(relative_humidity)
-                        weather_data_subset.append(wind_speed)
-                        status = 'processed'
-                    except KeyError as e:
-                        print(f"Key error: {e}")
+                    print('Ready to insert data into the database!')
+                    db.insert_weather_data(country_id, date, weather_code, mean_temperature, mean_surface_pressure, precipitation_sum, relative_humidity, wind_speed)  
+                    status = 'processed'
+                    processed_directory_name = '../data/processed/weather_data/'
                     
-                    if status == 'processed' and len(weather_data_subset) > 0:
-                        print('Ready to insert data into the database!')
+                    shutil.move(file, processed_directory_name + file_name)
 
-                        processed_directory = '../processed/weather_data'
-                        processed_file_name = f"weather_data_{country_code}_{batch_date}_{status}.json"
+                except KeyError as e:
+                    print(f"Key error: {e}")
+                    print(f"Failed to process data for file: {file}")
 
-                        date, weather_code, mean_temperature, mean_surface_pressure, precipitation_sum, relative_humidity, wind_speed = weather_data_subset
+                    shutil.move(file, processed_directory_name + file_name)
 
-                        new_data = {
-                            'date': date[0],
-                            'weather_code': weather_code[0],
-                            'mean_temperature': mean_temperature[0],
-                            'mean_surface_pressure': mean_surface_pressure[0],
-                            'precipitation_sum': precipitation_sum[0],
-                            'relative_humidity': relative_humidity[0],
-                            'wind_speed': wind_speed[0]
-                        }
+            row_count = get_json_row_count(processed_directory_name, file_name)
+            db.update_transform_log(batch_date, country_id, '../data/processed/weather_data/'.strip('../'), file_name, row_count, status)
 
-                        save_to_json(new_data, processed_directory, processed_file_name)
-                        
-                        db.update_transform_log(batch_date, country_id, processed_directory.strip('../'), processed_file_name, len(weather_data_subset), status)
-                        db.insert_weather_data(country_id, date[0], weather_code[0], mean_temperature[0], mean_surface_pressure[0], precipitation_sum[0], relative_humidity[0], wind_speed[0])
-                    else:
-                        print(f"Failed to process data for file: {file}")
-                        processed_directory = '../error/weather_data'
-                        processed_file_name = f"weather_data_{country_code}_{batch_date}_{status}.json"
-
-                        row_count = get_json_row_count('../raw/weather_data', file.split('/')[-1])
-                        
-                        save_to_json(data, processed_directory, processed_file_name)
-                        db.update_transform_log(batch_date, country_id, processed_directory.strip('../'), processed_file_name, row_count, status)
-            except Exception as e:
+        except Exception as e:
                 print(f"An error occurred: {e}")
                 db.connection.rollback()
                     
         print('\n')
 
+def process_covid_file(file, country_code, batch_date, countries, db):
+    status = 'error'
+    file_name = file.split('/')[-1]
+    processed_directory_name = '../data/error/covid_data/'
+
+    if country_code not in countries['code'].values:
+        print(f"Country code {country_code} not found in countries list.")
+    else:
+        country_id = countries[countries['code'] == country_code]['id'].values[0]
+        print(f"Country ID: {country_id}")
+        
+        try:
+            db.insert_initial_transform_log(batch_date, country_id, 'processing')
+
+            data = open_file(file)
+
+            if not data:
+                print(f"No data found in file: {file}")
+            elif isinstance(data, str):
+                print(f"Invalid expected data format in file: {file}")
+            else:
+                try:
+                    date = data['data']['date']
+                    confirmed_cases = data['data']['confirmed_diff']
+                    deaths = data['data']['deaths_diff']
+                    recovered = data['data']['recovered_diff']
+
+                    print('Ready to insert data into the database!')
+                    db.insert_covid_data(country_id, date, confirmed_cases, deaths, recovered)  
+                    status = 'processed'
+                    processed_directory_name = '../data/processed/covid_data/'
+                    
+                    shutil.move(file, processed_directory_name + file_name)
+
+                except KeyError as e:
+                    print(f"Key error: {e}")
+                    print(f"Failed to process data for file: {file}")
+
+                    shutil.move(file, processed_directory_name + file_name)
+
+            row_count = get_json_row_count(processed_directory_name, file_name)
+            db.update_transform_log(batch_date, country_id, '../data/processed/covid_data/'.strip('../'), file_name, row_count, status)
+
+        except Exception as e:
+                print(f"An error occurred: {e}")
+                db.connection.rollback()
+                    
+        print('\n')
+
+
+
+def routine(countries, db):
+    files_weather = list_all_files_from_directory('../data/raw/weather_data')
+    files_covid = list_all_files_from_directory('../data/raw/covid_data')
+
+    db.truncate_table('transform.weather_data_import')
+    db.truncate_table('transform.covid_data_import')
+
+    for file in files_weather:
+        print('\n')
+        print(f"Processing weather file: {file}")
+        country_code, batch_date = get_file_details(file)
+        process_weather_file(file, country_code, batch_date, countries, db)
+
     for file in files_covid:
         print('\n')
         print(f"Processing COVID file: {file}")
-
-        status = 'error'
-        
-        country_code = file.split('/')[-1].split('_')[2]
-        batch_date = file.split('/')[-1].split('_')[3].split('.')[0]
-
-        if country_code not in countries['code'].values:
-            print(f"Country code {country_code} not found in countries list.")
-        else:
-            country_id = countries[countries['code'] == country_code]['id'].values[0]
-            print(f"Country code: {country_code}")
-            print(f"Country ID: {country_id}")
-            
-            try:
-                db.insert_initial_transform_log(batch_date, country_id, 'processing')
-
-                with open(file, 'r') as f:
-                    data = json.load(f)
-
-                if not data:
-                    print(f"No data found in file: {file}")
-                elif isinstance(data, str):
-                    print(f"Invalid expected data format in file: {file}")
-                else:
-                    covid_data_subset = []
-                    try:
-                        date = data['data']['date']
-                        confirmed_cases = data['data']['confirmed_diff']
-                        deaths = data['data']['deaths_diff']
-                        recovered = data['data']['recovered_diff']
-
-                        covid_data_subset.append(date)
-                        covid_data_subset.append(confirmed_cases)
-                        covid_data_subset.append(deaths)
-                        covid_data_subset.append(recovered)
-                        status = 'processed'
-                    except KeyError as e:
-                        print(f"Key error: {e}")
-                    
-                    if status == 'processed' and len(covid_data_subset) > 0:
-                        print('Ready to insert data into the database!')
-
-                        processed_directory = '../processed/covid_data'
-                        processed_file_name = f"covid_data_{country_code}_{batch_date}_{status}.json"
-
-                        date, confirmed_cases, deaths, recovered = covid_data_subset
-
-                        new_data = {
-                            'date': date,
-                            'confirmed_cases': confirmed_cases,
-                            'deaths': deaths,
-                            'recovered': recovered
-                        }
-
-                        save_to_json(new_data, processed_directory, processed_file_name)
-                        
-                        db.update_transform_log(batch_date, country_id, processed_directory.strip('../'), processed_file_name, len(covid_data_subset), status)
-                        db.insert_covid_data(country_id, date, confirmed_cases, deaths, recovered)
-                    else:
-                        print(f"Failed to process data for file: {file}")
-                        processed_directory = '../error/covid_data'
-                        processed_file_name = f"covid_data_{country_code}_{batch_date}_{status}.json"
-
-                        row_count = get_json_row_count('../raw/covid_data', file.split('/')[-1])
-                        
-                        save_to_json(data, processed_directory, processed_file_name)
-                        db.update_transform_log(batch_date, country_id, processed_directory.strip('../'), processed_file_name, row_count, status)
-            except Exception as e:
-                print(f"An error occurred: {e}")
-                db.connection.rollback()        
-        print('\n')
+        country_code, batch_date = get_file_details(file)
+        process_covid_file(file, country_code, batch_date, countries, db)
         
     my_db.close_connection()
     print('Routine completed successfully!')

@@ -22,6 +22,12 @@ class databaseconnection:
         countries = pd.DataFrame(countries, columns = columns)
         return countries
     
+    def truncate_table(self, table_name):
+        query = f"TRUNCATE TABLE {table_name} RESTART IDENTITY;"
+        self.cursor.execute(query)
+        self.connection.commit()
+        print(f"{table_name} table has been truncated!")
+    
     def insert_initial_transform_log(self, batch_date, country_id, initial_status):
         query = f"""
             INSERT INTO transform.transform_log (batch_date, country_id, status)
@@ -42,7 +48,7 @@ class databaseconnection:
         try:
             row = self.fetch_rows(find_id_query)
             if row:
-                id = row[0][0]  # Extract the ID from the result
+                id = row[0][0]
 
                 update_query = f"""
                     UPDATE transform.transform_log
@@ -60,63 +66,22 @@ class databaseconnection:
             print(f"An error occurred: {e}.")
 
     def insert_weather_data(self, country_id, date, weather_code, mean_temperature, mean_surface_pressure, precipitation_sum, relative_humidity, wind_speed):
-        id = self.unique_record('transform.weather_data_import', country_id, date)
-
-        if id is True:
-            query = f"""
+        query = f"""
             INSERT INTO transform.weather_data_import (country_id, date, weather_code, mean_temperature, mean_surface_pressure, precipitation_sum, relative_humidity, wind_speed)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            """
-            self.cursor.execute(query, (int(country_id), date, weather_code, float(mean_temperature), float(mean_surface_pressure), float(precipitation_sum), float(relative_humidity), float(wind_speed)))
-            self.connection.commit()
-            print('Weather data record has been added!')
-        else:
-            print(f"Weather data for country_id {country_id} and date {date} already exists with ID {id}.")
-            query = f"""
-                UPDATE transform.weather_data_import
-                SET weather_code = %s, mean_temperature = %s, mean_surface_pressure = %s, precipitation_sum = %s, relative_humidity = %s, wind_speed = %s
-                WHERE id = {id};
-                """
-            self.cursor.execute(query, (weather_code, float(mean_temperature), float(mean_surface_pressure), float(precipitation_sum), float(relative_humidity), float(wind_speed)))
-            self.connection.commit()
-            print('Weather data record has been updated!')
-
-
+        """
+        self.cursor.execute(query, (int(country_id), date, weather_code, float(mean_temperature), float(mean_surface_pressure), float(precipitation_sum), float(relative_humidity), float(wind_speed)))
+        self.connection.commit()
+        print('Weather data record has been added!')
 
     def insert_covid_data(self, country_id, date, confirmed_cases, deaths, recovered):
-        id = self.unique_record('transform.covid_data_import', country_id, date)
-
-        if id is True:
-            query = f"""
-                INSERT INTO transform.covid_data_import (country_id, date, confirmed_cases, deaths, recovered)
-                VALUES (%s, %s, %s, %s, %s)
-                """
-            self.cursor.execute(query, (int(country_id), date, int(confirmed_cases), int(deaths), int(recovered)))
-            self.connection.commit()
-            print('Covid data record has been added!')
-        else:
-            print(f"Covid data for country_id {country_id} and date {date} already exists with ID {id}.")
-            query = f"""
-                UPDATE transform.covid_data_import
-                SET confirmed_cases = %s, deaths = %s, recovered = %s
-                WHERE id = {id};
-                """
-            self.cursor.execute(query, (int(confirmed_cases), int(deaths), int(recovered)))
-            self.connection.commit()
-            print('Covid data record has been updated!')
-
-    def unique_record(self, table, country_id, date):
         query = f"""
-            SELECT id
-            FROM {table}
-            WHERE country_id = {int(country_id)} AND date = '{date}'
-            """
-        self.cursor.execute(query)
-        rows = self.cursor.fetchall()
-        if rows:
-            return rows[0][0]
-        else:
-            return True
+            INSERT INTO transform.covid_data_import (country_id, date, confirmed_cases, deaths, recovered)
+            VALUES (%s, %s, %s, %s, %s)
+        """
+        self.cursor.execute(query, (int(country_id), date, int(confirmed_cases), int(deaths), int(recovered)))
+        self.connection.commit()
+        print('Covid data record has been added!')
 
     def close_connection(self):
         self.cursor.close()
