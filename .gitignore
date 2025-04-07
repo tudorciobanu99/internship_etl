@@ -179,6 +179,8 @@ database_password.env
 # Folders
 raw/
 myenv/
+processed/
+error/
 
 # DS_Store
 .DS_Store
