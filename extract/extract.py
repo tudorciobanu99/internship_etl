@@ -2,7 +2,8 @@
 from covid_api import covid_api
 from weather_api import weather_api
 from databaseconnection import databaseconnection
-import os, json, datetime
+import os, json
+from datetime import datetime
 from dotenv import load_dotenv
 
 def save_to_json(data, import_directory_name, import_file_name):
