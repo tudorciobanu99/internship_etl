@@ -6,6 +6,7 @@ def routine(db):
     # Merge data into dimension tables
     db.merge_dim_country()
     db.merge_dim_date()
+    db.merge_dim_weather_description()
 
     # Merge data into fact tables
     db.merge_fact_covid()

@@ -41,52 +41,64 @@ class databaseconnection:
         query = f"""
             MERGE INTO load.dim_date AS target
             USING (
-                SELECT DISTINCT date FROM transform.covid_data_import
-                UNION
-                SELECT DISTINCT date FROM transform.weather_data_import
+                SELECT DISTINCT 
+                    date,
+                    TO_CHAR(date, 'YYYYMMDD')::BIGINT AS date_id
+                FROM (
+                    SELECT date FROM transform.covid_data_import
+                    UNION
+                    SELECT date FROM transform.weather_data_import
+                ) AS combined_dates
             ) AS source
-            ON target.date = source.date
+            ON target.date_id = source.date_id
             WHEN NOT MATCHED THEN
-                INSERT (date, year, month, day, day_of_week, is_weekend)
-            VALUES (
-                source.date,
-                EXTRACT(YEAR FROM source.date),
-                EXTRACT(MONTH FROM source.date),
-                EXTRACT(DAY FROM source.date),
-                TO_CHAR(source.date, 'Day'),
-                CASE WHEN EXTRACT(DOW FROM source.date) IN (0, 6) THEN TRUE ELSE FALSE END
-            );
+                INSERT (date_id, date, year, month, day, day_of_week, is_weekend)
+                VALUES (
+                    source.date_id,
+                    source.date,
+                    EXTRACT(YEAR FROM source.date),
+                    EXTRACT(MONTH FROM source.date),
+                    EXTRACT(DAY FROM source.date),
+                    TO_CHAR(source.date, 'Day'),
+                    CASE WHEN EXTRACT(DOW FROM source.date) IN (0, 6) THEN TRUE ELSE FALSE END
+                );
         """
-
         self.cursor.execute(query)
         self.connection.commit()
         print("Data merged successfully in dim_date!")
 
     def merge_fact_covid(self):
         query = f"""
-            MERGE INTO load.fact_covid AS target
+            MERGE INTO load.fact_covid_data AS target
             USING (
                 SELECT
                     c.country_id,
                     d.date_id,
                     t.confirmed_cases,
                     t.deaths,
-                    t.recovered
+                    t.recovered,
+                    md5(
+                        c.country_id || '|' || 
+                        d.date_id || '|' || 
+                        t.confirmed_cases || '|' || 
+                        t.deaths || '|' || 
+                        t.recovered
+                    ) AS hash_value
                 FROM transform.covid_data_import t
                 JOIN load.dim_country c ON t.country_code = c.country_code
                 JOIN load.dim_date d ON t.date = d.date
             ) AS source
             ON target.country_id = source.country_id AND target.date_id = source.date_id
-            WHEN MATCHED THEN
+            WHEN MATCHED AND target.hash_value != source.hash_value THEN
                 UPDATE SET
                     confirmed_cases = source.confirmed_cases,
                     deaths = source.deaths,
                     recovered = source.recovered,
-                    updatedAt = CURRENT_TIMESTAMP,
-                    last_etl_upd = CURRENT_TIMESTAMP
+                    hash_value = source.hash_value,
+                    updatedAt = CURRENT_TIMESTAMP
             WHEN NOT MATCHED THEN
-                INSERT (country_id, date_id, confirmed_cases, deaths, recovered, createdAt, updatedAt, last_etl_upd)
-                VALUES (source.country_id, source.date_id, source.confirmed_cases, source.deaths, source.recovered, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+                INSERT (country_id, date_id, confirmed_cases, deaths, recovered, hash_value, createdAt, updatedAt)
+                VALUES (source.country_id, source.date_id, source.confirmed_cases, source.deaths, source.recovered, source.hash_value, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
         """
         self.cursor.execute(query)
         self.connection.commit()
@@ -104,13 +116,23 @@ class databaseconnection:
                     t.mean_surface_pressure,
                     t.precipitation_sum,
                     t.relative_humidity,
-                    t.wind_speed
+                    t.wind_speed,
+                    md5(
+                        c.country_id || '|' || 
+                        d.date_id || '|' || 
+                        t.weather_code || '|' || 
+                        t.mean_temperature || '|' || 
+                        t.mean_surface_pressure || '|' || 
+                        t.precipitation_sum || '|' || 
+                        t.relative_humidity || '|' || 
+                        t.wind_speed
+                    ) AS hash_value
                 FROM transform.weather_data_import t
                 JOIN load.dim_country c ON t.country_code = c.country_code
                 JOIN load.dim_date d ON t.date = d.date
             ) AS source
             ON target.country_id = source.country_id AND target.date_id = source.date_id
-            WHEN MATCHED THEN
+            WHEN MATCHED AND target.hash_value != source.hash_value THEN
                 UPDATE SET
                     weather_code = source.weather_code,
                     mean_temperature = source.mean_temperature,
@@ -118,16 +140,32 @@ class databaseconnection:
                     precipitation_sum = source.precipitation_sum,
                     relative_humidity = source.relative_humidity,
                     wind_speed = source.wind_speed,
-                    updatedAt = CURRENT_TIMESTAMP,
-                    last_etl_upd = CURRENT_TIMESTAMP
+                    hash_value = source.hash_value,
+                    updatedAt = CURRENT_TIMESTAMP
             WHEN NOT MATCHED THEN
-                INSERT (country_id, date_id, weather_code, mean_temperature, mean_surface_pressure, precipitation_sum, relative_humidity, wind_speed, createdAt, updatedAt, last_etl_upd)
-                VALUES (source.country_id, source.date_id, source.weather_code, source.mean_temperature, source.mean_surface_pressure, source.precipitation_sum, source.relative_humidity, source.wind_speed, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+                INSERT (country_id, date_id, weather_code, mean_temperature, mean_surface_pressure, precipitation_sum, relative_humidity, wind_speed, hash_value, createdAt, updatedAt)
+                VALUES (source.country_id, source.date_id, source.weather_code, source.mean_temperature, source.mean_surface_pressure, source.precipitation_sum, source.relative_humidity, source.wind_speed, source.hash_value, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
         """
-
         self.cursor.execute(query)
         self.connection.commit()
         print("Data merged successfully in fact_weather_data!")
+
+    def merge_dim_weather_description(self):
+        query = f"""
+            MERGE INTO load.dim_weather_code AS target
+            USING (
+                SELECT DISTINCT weather_code, weather_description FROM transform.weather_data_import
+            ) AS source
+            ON target.weather_code = source.weather_code
+            WHEN MATCHED THEN
+                UPDATE SET description = source.weather_description
+            WHEN NOT MATCHED THEN
+                INSERT (weather_code, description)
+                VALUES (source.weather_code, source.weather_description);
+        """
+        self.cursor.execute(query)
+        self.connection.commit()
+        print("Data merged successfully in dim_weather_description!")
 
     def close_connection(self):
         self.cursor.close()
