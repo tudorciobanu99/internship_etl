@@ -2,7 +2,8 @@
 from covid_api import covid_api
 from weather_api import weather_api
 from databaseconnection import databaseconnection
-import os, json, datetime
+import os, json
+from datetime import datetime
 from dotenv import load_dotenv
 
 def save_to_json(data, import_directory_name, import_file_name):
@@ -110,8 +111,8 @@ if __name__ == "__main__":
     date = batch_date.replace("2025", "2022")
 
     countries = my_db.fetch_countries()
-    weather_import_directory_name = '../raw/weather_data'
-    covid_import_directory_name = '../raw/covid_data'
+    weather_import_directory_name = '../data/raw/weather_data'
+    covid_import_directory_name = '../data/raw/covid_data'
     weather_import_file_name = 'weather_data'
     covid_import_file_name = 'covid_data'
     
