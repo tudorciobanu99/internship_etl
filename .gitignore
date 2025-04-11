@@ -179,6 +179,7 @@ database_password.env
 # Folders
 myenv/
 data/
+weather_description/
 
 # DS_Store
 .DS_Store

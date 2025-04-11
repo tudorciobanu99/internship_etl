@@ -65,21 +65,52 @@ class databaseconnection:
         except Exception as e:
             print(f"An error occurred: {e}.")
 
-    def insert_weather_data(self, country_id, date, weather_code, mean_temperature, mean_surface_pressure, precipitation_sum, relative_humidity, wind_speed):
-        query = f"""
-            INSERT INTO transform.weather_data_import (country_id, date, weather_code, mean_temperature, mean_surface_pressure, precipitation_sum, relative_humidity, wind_speed)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+    def fetch_country_details(self, country_id):
+        country_query = f"""
+            SELECT code, latitude, longitude
+            FROM extract.country
+            WHERE id = %s
         """
-        self.cursor.execute(query, (int(country_id), date, weather_code, float(mean_temperature), float(mean_surface_pressure), float(precipitation_sum), float(relative_humidity), float(wind_speed)))
+        self.cursor.execute(country_query, (int(country_id),))
+        country_details = self.cursor.fetchone()
+
+        return country_details
+
+    def insert_weather_data(self, country_id, date, weather_code, weather_description, mean_temperature, mean_surface_pressure, precipitation_sum, relative_humidity, wind_speed):
+        country_code, latitude, longitude = self.fetch_country_details(country_id)
+        
+        query = f"""
+            INSERT INTO transform.weather_data_import (
+                country_id, country_code, latitude, longitude, date, weather_code, weather_description,
+                mean_temperature, mean_surface_pressure, precipitation_sum,
+                relative_humidity, wind_speed
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+
+        self.cursor.execute(query, (
+            int(country_id), country_code, float(latitude), float(longitude),
+            date, str(weather_code), str(weather_description), float(mean_temperature), float(mean_surface_pressure),
+            float(precipitation_sum), float(relative_humidity), float(wind_speed)
+        ))
         self.connection.commit()
         print('Weather data record has been added!')
 
     def insert_covid_data(self, country_id, date, confirmed_cases, deaths, recovered):
+        country_code, latitude, longitude = self.fetch_country_details(country_id)
+
         query = f"""
-            INSERT INTO transform.covid_data_import (country_id, date, confirmed_cases, deaths, recovered)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO transform.covid_data_import (
+                country_id, country_code, latitude, longitude, date,
+                confirmed_cases, deaths, recovered
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """
-        self.cursor.execute(query, (int(country_id), date, int(confirmed_cases), int(deaths), int(recovered)))
+
+        self.cursor.execute(query, (
+            int(country_id), country_code, float(latitude), float(longitude),
+            date, int(confirmed_cases), int(deaths), int(recovered)
+        ))
         self.connection.commit()
         print('Covid data record has been added!')
 
