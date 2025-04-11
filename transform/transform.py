@@ -1,4 +1,4 @@
-import sys, os, json, datetime, shutil
+import sys, os, json, datetime, shutil, csv
 from databaseconnection import databaseconnection
 from dotenv import load_dotenv
 sys.path.append('../extract')
@@ -21,8 +21,6 @@ def open_file(file):
     with open(file, 'r') as f:
         data = json.load(f)
     return data
-
-import csv
 
 def get_weather_description(weather_code, csv_file_path='../weather_description/wmo_code_4677.csv'):
     try:
