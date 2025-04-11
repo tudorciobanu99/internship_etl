@@ -183,3 +183,9 @@ weather_description/
 
 # DS_Store
 .DS_Store
+
+# Pylint
+.pylintrc
+
+# VS Code
+.vscode/
