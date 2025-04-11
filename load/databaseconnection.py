@@ -21,18 +21,34 @@ class databaseconnection:
         query = f"""
             MERGE INTO load.dim_country AS target
             USING (
-                SELECT DISTINCT country_id, country_code, latitude, longitude FROM transform.covid_data_import
-                UNION
-                SELECT DISTINCT country_id, country_code, latitude, longitude FROM transform.weather_data_import
+                SELECT DISTINCT 
+                    country_id, 
+                    country_code, 
+                    latitude, 
+                    longitude,
+                    md5(
+                        country_id || '|' || 
+                        country_code || '|' || 
+                        latitude || '|' || 
+                        longitude
+                    ) AS hash_value
+                FROM (
+                    SELECT country_id, country_code, latitude, longitude FROM transform.covid_data_import
+                    UNION
+                    SELECT country_id, country_code, latitude, longitude FROM transform.weather_data_import
+                ) AS combined
             ) AS source
             ON target.country_id = source.country_id
-            WHEN MATCHED THEN
-                UPDATE SET country_code = source.country_code, latitude = source.latitude, longitude = source.longitude
+            WHEN MATCHED AND target.hash_value != source.hash_value THEN
+                UPDATE SET 
+                    country_code = source.country_code,
+                    latitude = source.latitude,
+                    longitude = source.longitude,
+                    hash_value = source.hash_value
             WHEN NOT MATCHED THEN
-                INSERT (country_id, country_code, latitude, longitude)
-                VALUES (source.country_id, source.country_code, source.latitude, source.longitude);
+                INSERT (country_id, country_code, latitude, longitude, hash_value)
+                VALUES (source.country_id, source.country_code, source.latitude, source.longitude, source.hash_value);
         """
-
         self.cursor.execute(query)
         self.connection.commit()
         print("Data merged successfully in dim_country!")
@@ -43,7 +59,20 @@ class databaseconnection:
             USING (
                 SELECT DISTINCT 
                     date,
-                    TO_CHAR(date, 'YYYYMMDD')::BIGINT AS date_id
+                    TO_CHAR(date, 'YYYYMMDD')::BIGINT AS date_id,
+                    EXTRACT(YEAR FROM date) AS year,
+                    EXTRACT(MONTH FROM date) AS month,
+                    EXTRACT(DAY FROM date) AS day,
+                    EXTRACT(DOW FROM date) AS day_of_week,
+                    CASE WHEN EXTRACT(DOW FROM date) IN (0, 6) THEN TRUE ELSE FALSE END AS is_weekend,
+                    md5(
+                        TO_CHAR(date, 'YYYYMMDD') || '|' || 
+                        EXTRACT(YEAR FROM date) || '|' || 
+                        EXTRACT(MONTH FROM date) || '|' || 
+                        EXTRACT(DAY FROM date) || '|' || 
+                        EXTRACT(DOW FROM date) || '|' || 
+                        CASE WHEN EXTRACT(DOW FROM date) IN (0, 6) THEN 'TRUE' ELSE 'FALSE' END
+                    ) AS hash_value
                 FROM (
                     SELECT date FROM transform.covid_data_import
                     UNION
@@ -51,17 +80,18 @@ class databaseconnection:
                 ) AS combined_dates
             ) AS source
             ON target.date_id = source.date_id
+            WHEN MATCHED AND target.hash_value != source.hash_value THEN
+                UPDATE SET 
+                    date = source.date,
+                    year = source.year,
+                    month = source.month,
+                    day = source.day,
+                    day_of_week = source.day_of_week,
+                    is_weekend = source.is_weekend,
+                    hash_value = source.hash_value
             WHEN NOT MATCHED THEN
-                INSERT (date_id, date, year, month, day, day_of_week, is_weekend)
-                VALUES (
-                    source.date_id,
-                    source.date,
-                    EXTRACT(YEAR FROM source.date),
-                    EXTRACT(MONTH FROM source.date),
-                    EXTRACT(DAY FROM source.date),
-                    TO_CHAR(source.date, 'Day'),
-                    CASE WHEN EXTRACT(DOW FROM source.date) IN (0, 6) THEN TRUE ELSE FALSE END
-                );
+                INSERT (date_id, date, year, month, day, day_of_week, is_weekend, hash_value)
+                VALUES (source.date_id, source.date, source.year, source.month, source.day, source.day_of_week, source.is_weekend, source.hash_value);
         """
         self.cursor.execute(query)
         self.connection.commit()
@@ -154,14 +184,20 @@ class databaseconnection:
         query = f"""
             MERGE INTO load.dim_weather_code AS target
             USING (
-                SELECT DISTINCT weather_code, weather_description FROM transform.weather_data_import
+                SELECT DISTINCT 
+                    weather_code, 
+                    weather_description,
+                    md5(weather_code || '|' || weather_description) AS hash_value
+                FROM transform.weather_data_import
             ) AS source
             ON target.weather_code = source.weather_code
-            WHEN MATCHED THEN
-                UPDATE SET description = source.weather_description
+            WHEN MATCHED AND target.hash_value != source.hash_value THEN
+                UPDATE SET 
+                    description = source.weather_description,
+                    hash_value = source.hash_value
             WHEN NOT MATCHED THEN
-                INSERT (weather_code, description)
-                VALUES (source.weather_code, source.weather_description);
+                INSERT (weather_code, description, hash_value)
+                VALUES (source.weather_code, source.weather_description, source.hash_value);
         """
         self.cursor.execute(query)
         self.connection.commit()
