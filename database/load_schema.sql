@@ -23,7 +23,8 @@ CREATE TABLE load.dim_country (
     country_id SERIAL PRIMARY KEY,
     country_code VARCHAR(10) NOT NULL,
     latitude NUMERIC(9, 6) NOT NULL,
-    longitude NUMERIC(9, 6) NOT NULL
+    longitude NUMERIC(9, 6) NOT NULL,
+    hash_value VARCHAR(64) NOT NULL
 );
 
 CREATE TABLE load.dim_date (
@@ -33,12 +34,14 @@ CREATE TABLE load.dim_date (
     month INT NOT NULL,
     day INT NOT NULL,
     day_of_week text NOT NULL,
-    is_weekend BOOLEAN NOT NULL
+    is_weekend BOOLEAN NOT NULL,
+    hash_value VARCHAR(64) NOT NULL
 );
 
 CREATE TABLE load.dim_weather_code (
     weather_code VARCHAR(10) PRIMARY KEY,
-    description text NOT NULL
+    description text NOT NULL,
+    hash_value VARCHAR(64) NOT NULL
 );
 
 CREATE TABLE load.fact_covid_data (
