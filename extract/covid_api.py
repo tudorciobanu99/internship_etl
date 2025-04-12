@@ -1,5 +1,6 @@
 import time
 import requests
+
 class CovidAPI:
     def __init__(self, api_id, base_url):
         self.base_url = base_url
