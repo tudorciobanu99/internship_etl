@@ -1,35 +1,20 @@
-import psycopg2 as pg, pandas as pd
+import psycopg2 as pg
+from database_connector import DatabaseConnector
 
-class databaseconnection:
-    def __init__(self, dbname, user, host, password, port):
-        self.connection = pg.connect(
-            database=dbname,
-            user=user,
-            host=host,
-            password=password,
-            port=port,
-        )
-        self.cursor = self.connection.cursor()
-        print("Connection successful!")
-
-    def fetch_rows(self, query):
-        self.cursor.execute(query)
-        rows = self.cursor.fetchall()
-        return rows
-    
+class DataLoader(DatabaseConnector):
     def merge_dim_country(self):
-        query = f"""
+        query = """
             MERGE INTO load.dim_country AS target
             USING (
-                SELECT DISTINCT 
-                    country_id, 
-                    country_code, 
-                    latitude, 
+                SELECT DISTINCT
+                    country_id,
+                    country_code,
+                    latitude,
                     longitude,
                     md5(
-                        country_id || '|' || 
-                        country_code || '|' || 
-                        latitude || '|' || 
+                        country_id || '|' ||
+                        country_code || '|' ||
+                        latitude || '|' ||
                         longitude
                     ) AS hash_value
                 FROM (
@@ -40,7 +25,7 @@ class databaseconnection:
             ) AS source
             ON target.country_id = source.country_id
             WHEN MATCHED AND target.hash_value != source.hash_value THEN
-                UPDATE SET 
+                UPDATE SET
                     country_code = source.country_code,
                     latitude = source.latitude,
                     longitude = source.longitude,
@@ -49,15 +34,17 @@ class databaseconnection:
                 INSERT (country_id, country_code, latitude, longitude, hash_value)
                 VALUES (source.country_id, source.country_code, source.latitude, source.longitude, source.hash_value);
         """
-        self.cursor.execute(query)
-        self.connection.commit()
-        print("Data merged successfully in dim_country!")
+        try:
+            self.cursor.execute(query)
+            self.connection.commit()
+        except pg.Error:
+            self.rollback_transaction()
 
     def merge_dim_date(self):
-        query = f"""
+        query = """
             MERGE INTO load.dim_date AS target
             USING (
-                SELECT DISTINCT 
+                SELECT DISTINCT
                     date,
                     TO_CHAR(date, 'YYYYMMDD')::BIGINT AS date_id,
                     EXTRACT(YEAR FROM date) AS year,
@@ -66,11 +53,11 @@ class databaseconnection:
                     EXTRACT(DOW FROM date) AS day_of_week,
                     CASE WHEN EXTRACT(DOW FROM date) IN (0, 6) THEN TRUE ELSE FALSE END AS is_weekend,
                     md5(
-                        TO_CHAR(date, 'YYYYMMDD') || '|' || 
-                        EXTRACT(YEAR FROM date) || '|' || 
-                        EXTRACT(MONTH FROM date) || '|' || 
-                        EXTRACT(DAY FROM date) || '|' || 
-                        EXTRACT(DOW FROM date) || '|' || 
+                        TO_CHAR(date, 'YYYYMMDD') || '|' ||
+                        EXTRACT(YEAR FROM date) || '|' ||
+                        EXTRACT(MONTH FROM date) || '|' ||
+                        EXTRACT(DAY FROM date) || '|' ||
+                        EXTRACT(DOW FROM date) || '|' ||
                         CASE WHEN EXTRACT(DOW FROM date) IN (0, 6) THEN 'TRUE' ELSE 'FALSE' END
                     ) AS hash_value
                 FROM (
@@ -81,7 +68,7 @@ class databaseconnection:
             ) AS source
             ON target.date_id = source.date_id
             WHEN MATCHED AND target.hash_value != source.hash_value THEN
-                UPDATE SET 
+                UPDATE SET
                     date = source.date,
                     year = source.year,
                     month = source.month,
@@ -91,14 +78,42 @@ class databaseconnection:
                     hash_value = source.hash_value
             WHEN NOT MATCHED THEN
                 INSERT (date_id, date, year, month, day, day_of_week, is_weekend, hash_value)
-                VALUES (source.date_id, source.date, source.year, source.month, source.day, source.day_of_week, source.is_weekend, source.hash_value);
+                VALUES (source.date_id, source.date, source.year, source.month, source.day, source.day_of_week,
+                source.is_weekend, source.hash_value);
         """
-        self.cursor.execute(query)
-        self.connection.commit()
-        print("Data merged successfully in dim_date!")
+        try:
+            self.cursor.execute(query)
+            self.connection.commit()
+        except pg.Error:
+            self.rollback_transaction()
+
+    def merge_dim_weather_description(self):
+        query = """
+            MERGE INTO load.dim_weather_code AS target
+            USING (
+                SELECT DISTINCT
+                    weather_code,
+                    weather_description,
+                    md5(weather_code || '|' || weather_description) AS hash_value
+                FROM transform.weather_data_import
+            ) AS source
+            ON target.weather_code = source.weather_code
+            WHEN MATCHED AND target.hash_value != source.hash_value THEN
+                UPDATE SET
+                    description = source.weather_description,
+                    hash_value = source.hash_value
+            WHEN NOT MATCHED THEN
+                INSERT (weather_code, description, hash_value)
+                VALUES (source.weather_code, source.weather_description, source.hash_value);
+        """
+        try:
+            self.cursor.execute(query)
+            self.connection.commit()
+        except pg.Error:
+            self.rollback_transaction()
 
     def merge_fact_covid(self):
-        query = f"""
+        query = """
             MERGE INTO load.fact_covid_data AS target
             USING (
                 SELECT
@@ -108,10 +123,10 @@ class databaseconnection:
                     t.deaths,
                     t.recovered,
                     md5(
-                        c.country_id || '|' || 
-                        d.date_id || '|' || 
-                        t.confirmed_cases || '|' || 
-                        t.deaths || '|' || 
+                        c.country_id || '|' ||
+                        d.date_id || '|' ||
+                        t.confirmed_cases || '|' ||
+                        t.deaths || '|' ||
                         t.recovered
                     ) AS hash_value
                 FROM transform.covid_data_import t
@@ -128,14 +143,17 @@ class databaseconnection:
                     updatedAt = CURRENT_TIMESTAMP
             WHEN NOT MATCHED THEN
                 INSERT (country_id, date_id, confirmed_cases, deaths, recovered, hash_value, createdAt, updatedAt)
-                VALUES (source.country_id, source.date_id, source.confirmed_cases, source.deaths, source.recovered, source.hash_value, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+                VALUES (source.country_id, source.date_id, source.confirmed_cases, source.deaths,
+                source.recovered, source.hash_value, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
         """
-        self.cursor.execute(query)
-        self.connection.commit()
-        print("Data merged successfully in fact_covid!")
+        try:
+            self.cursor.execute(query)
+            self.connection.commit()
+        except pg.Error:
+            self.rollback_transaction()
 
     def merge_fact_weather(self):
-        query = f"""
+        query = """
             MERGE INTO load.fact_weather_data AS target
             USING (
                 SELECT
@@ -148,13 +166,13 @@ class databaseconnection:
                     t.relative_humidity,
                     t.wind_speed,
                     md5(
-                        c.country_id || '|' || 
-                        d.date_id || '|' || 
-                        t.weather_code || '|' || 
-                        t.mean_temperature || '|' || 
-                        t.mean_surface_pressure || '|' || 
-                        t.precipitation_sum || '|' || 
-                        t.relative_humidity || '|' || 
+                        c.country_id || '|' ||
+                        d.date_id || '|' ||
+                        t.weather_code || '|' ||
+                        t.mean_temperature || '|' ||
+                        t.mean_surface_pressure || '|' ||
+                        t.precipitation_sum || '|' ||
+                        t.relative_humidity || '|' ||
                         t.wind_speed
                     ) AS hash_value
                 FROM transform.weather_data_import t
@@ -173,38 +191,14 @@ class databaseconnection:
                     hash_value = source.hash_value,
                     updatedAt = CURRENT_TIMESTAMP
             WHEN NOT MATCHED THEN
-                INSERT (country_id, date_id, weather_code, mean_temperature, mean_surface_pressure, precipitation_sum, relative_humidity, wind_speed, hash_value, createdAt, updatedAt)
-                VALUES (source.country_id, source.date_id, source.weather_code, source.mean_temperature, source.mean_surface_pressure, source.precipitation_sum, source.relative_humidity, source.wind_speed, source.hash_value, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+                INSERT (country_id, date_id, weather_code, mean_temperature, mean_surface_pressure,
+                precipitation_sum, relative_humidity, wind_speed, hash_value, createdAt, updatedAt)
+                VALUES (source.country_id, source.date_id, source.weather_code, source.mean_temperature,
+                source.mean_surface_pressure, source.precipitation_sum, source.relative_humidity, source.wind_speed,
+                source.hash_value, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
         """
-        self.cursor.execute(query)
-        self.connection.commit()
-        print("Data merged successfully in fact_weather_data!")
-
-    def merge_dim_weather_description(self):
-        query = f"""
-            MERGE INTO load.dim_weather_code AS target
-            USING (
-                SELECT DISTINCT 
-                    weather_code, 
-                    weather_description,
-                    md5(weather_code || '|' || weather_description) AS hash_value
-                FROM transform.weather_data_import
-            ) AS source
-            ON target.weather_code = source.weather_code
-            WHEN MATCHED AND target.hash_value != source.hash_value THEN
-                UPDATE SET 
-                    description = source.weather_description,
-                    hash_value = source.hash_value
-            WHEN NOT MATCHED THEN
-                INSERT (weather_code, description, hash_value)
-                VALUES (source.weather_code, source.weather_description, source.hash_value);
-        """
-        self.cursor.execute(query)
-        self.connection.commit()
-        print("Data merged successfully in dim_weather_description!")
-
-    def close_connection(self):
-        self.cursor.close()
-        self.connection.close()
-        print("Connection terminated!")
-
+        try:
+            self.cursor.execute(query)
+            self.connection.commit()
+        except pg.Error:
+            self.rollback_transaction()

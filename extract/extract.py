@@ -1,10 +1,9 @@
 import os
 import json
 from datetime import datetime
-from dotenv import load_dotenv
-from covid_api import CovidAPI
-from weather_api import WeatherAPI
-from data_extractor import DataExtractor
+from extract.data_extractor import DataExtractor
+from extract.covid_api import CovidAPI
+from extract.weather_api import WeatherAPI
 
 def save_to_json(data, import_dir_name, import_file_name):
     if not os.path.exists(import_dir_name):
@@ -37,13 +36,14 @@ def get_json_row_count(import_directory_name, import_file_name):
     except json.JSONDecodeError:
         return 0
 
-def routine(w_api:WeatherAPI, c_api:CovidAPI, db:DataExtractor, countries, **params):
-    date = params['date']
-    batch_date = params['batch_date']
-    w_import_dir_name = params['weather_import_dir_name']
-    c_import_dir_name = params['covid_import_dir_name']
-    w_import_file_name = params['weather_import_file_name']
-    c_import_file_name = params['covid_import_file_name']
+def e_routine(w_api:WeatherAPI, c_api:CovidAPI, db:DataExtractor, countries, date, batch_date):
+    w_import_dir_name = 'data/raw/weather_data'
+    c_import_dir_name = 'data/raw/covid_data'
+    w_import_file_name = 'weather_data'
+    c_import_file_name = 'covid_data'
+
+    file_created_date = datetime.now().strftime("%Y-%m-%d")
+    file_last_modified_date = datetime.now().strftime("%Y-%m-%d")
 
     try:
         for _, country in countries.iterrows():
@@ -64,7 +64,7 @@ def routine(w_api:WeatherAPI, c_api:CovidAPI, db:DataExtractor, countries, **par
             i_import_params = {
                 'batch_date': batch_date,
                 'country_id': int(country['id']),
-                'import_dir_name': w_import_dir_name.lstrip('../'),
+                'import_dir_name': w_import_dir_name,
                 'import_file_name': w_file_name
             }
             db.insert_initial_import_log(**i_import_params)
@@ -73,10 +73,10 @@ def routine(w_api:WeatherAPI, c_api:CovidAPI, db:DataExtractor, countries, **par
             u_import_params = {
                 'batch_date': batch_date,
                 'country_id': int(country['id']),
-                'import_dir_name': w_import_dir_name.lstrip('../'),
+                'import_dir_name': w_import_dir_name,
                 'import_file_name': w_file_name,
-                'file_created_date': batch_date,
-                'file_last_modified_date': batch_date,
+                'file_created_date': file_created_date,
+                'file_last_modified_date': file_last_modified_date,
                 'row_count': w_row_count
             }
             db.update_import_log(**u_import_params)
@@ -98,7 +98,7 @@ def routine(w_api:WeatherAPI, c_api:CovidAPI, db:DataExtractor, countries, **par
             i_import_params = {
                 'batch_date': batch_date,
                 'country_id': int(country['id']),
-                'import_dir_name': c_import_dir_name.lstrip('../'),
+                'import_dir_name': c_import_dir_name,
                 'import_file_name': c_file_name
             }
             db.insert_initial_import_log(**i_import_params)
@@ -107,62 +107,13 @@ def routine(w_api:WeatherAPI, c_api:CovidAPI, db:DataExtractor, countries, **par
             u_import_params = {
                 'batch_date': batch_date,
                 'country_id': int(country['id']),
-                'import_dir_name': c_import_dir_name.lstrip('../'),
+                'import_dir_name': c_import_dir_name,
                 'import_file_name': c_file_name,
-                'file_created_date': batch_date,
-                'file_last_modified_date': batch_date,
+                'file_created_date': file_created_date,
+                'file_last_modified_date': file_last_modified_date,
                 'row_count': c_row_count
             }
             db.update_import_log(**u_import_params)
-
-        print('Routine completed successfully!')
     except Exception:
-        print('An error occurred during the routine. Rolling back the transaction.')
         db.rollback_transaction()
     db.close_connection()
-
-if __name__ == "__main__":
-    load_dotenv('database_password.env')
-
-    db_config = {
-        "dbname": "etl",
-        "user": "postgres",
-        "host": "localhost",
-        "password": os.environ.get("db_password"),
-        "port": 5432,
-        }
-    my_db = DataExtractor(**db_config)
-
-    api_info = my_db.fetch_api_information()
-
-    weather_api_info = api_info[api_info["api_name"] == "Weather API"]
-    weather_api = WeatherAPI(
-        api_id=weather_api_info["id"].values[0],
-        base_url=weather_api_info["api_base_url"].values[0],
-    )
-
-    covid_api_info = api_info[api_info["api_name"] == "COVID API"]
-    covid_api = CovidAPI(
-        api_id=covid_api_info["id"].values[0],
-        base_url=covid_api_info["api_base_url"].values[0],
-    )
-
-    batch_date = datetime.now().strftime("%Y-%m-%d")
-    date = batch_date.replace("2025", "2022")
-
-    countries = my_db.fetch_countries()
-    WHEATHER_IMPORT_DIR_NAME = 'data/raw/weather_data'
-    COVID_IMPORT_DIR_NAME = 'data/raw/covid_data'
-    WEATHER_IMPORT_FILE_NAME = 'weather_data'
-    COVID_IMPORT_FILE_NAME = 'covid_data'
-
-    params = {
-        'batch_date' : batch_date,
-        'date' : date,
-        'weather_import_dir_name': WHEATHER_IMPORT_DIR_NAME,
-        'covid_import_dir_name': COVID_IMPORT_DIR_NAME,
-        'weather_import_file_name': WEATHER_IMPORT_FILE_NAME,
-        'covid_import_file_name': COVID_IMPORT_FILE_NAME
-    }
-
-    routine(weather_api, covid_api, my_db, countries, **params)

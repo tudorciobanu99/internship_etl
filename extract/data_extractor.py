@@ -28,8 +28,7 @@ class DataExtractor(DatabaseConnector):
             row = self.fetch_rows(query)
             if row:
                 return row[0]
-            else:
-                return None
+            return None
         except pg.Error:
             return None
 
