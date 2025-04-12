@@ -16,7 +16,6 @@ def initialize_database_objects(**db_config):
     l_db = DataLoader(**db_config)
     return e_db, t_db, l_db
 
-
 if __name__ == "__main__":
     # My PostgreSQL database connection details:
     load_dotenv('database_password.env')
