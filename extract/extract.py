@@ -31,9 +31,7 @@ def get_json_row_count(import_directory_name, import_file_name):
                     else:
                         total_rows += 1
         return total_rows
-    except FileNotFoundError:
-        return 0
-    except json.JSONDecodeError:
+    except (FileNotFoundError, json.JSONDecodeError):
         return 0
 
 def e_routine(w_api:WeatherAPI, c_api:CovidAPI, db:DataExtractor, countries, date, batch_date):
