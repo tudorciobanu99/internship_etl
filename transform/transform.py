@@ -1,4 +1,4 @@
-import sys, os, json, datetime, shutil
+import sys, os, json, datetime, shutil, csv
 from databaseconnection import databaseconnection
 from dotenv import load_dotenv
 sys.path.append('../extract')
@@ -22,6 +22,21 @@ def open_file(file):
         data = json.load(f)
     return data
 
+def get_weather_description(weather_code, csv_file_path='../weather_description/wmo_code_4677.csv'):
+    try:
+        with open(csv_file_path, mode='r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                if row['Weather Code'] == weather_code:
+                    return row['Description']
+    except FileNotFoundError:
+        print(f"CSV file not found at {csv_file_path}.")
+    except KeyError as e:
+        print(f"Key error: {e}. Check the CSV file headers.")
+    except Exception as e:
+        print(f"An error occurred: {e}.")
+    
+    return None
 
 def process_weather_file(file, country_code, batch_date, countries, db):
     status = 'error'
@@ -52,9 +67,15 @@ def process_weather_file(file, country_code, batch_date, countries, db):
                     precipitation_sum = data['daily']['precipitation_sum'][0]
                     relative_humidity = data['daily']['relative_humidity_2m_mean'][0]
                     wind_speed = data['daily']['wind_speed_10m_mean'][0]
+                    
+                    weather_description = get_weather_description(str(weather_code), '../weather_description/wmo_code_4677.csv')
+
+                    if not weather_description:
+                        print(f"Weather description not found for code {weather_code}.")
+                        weather_description = "Unknown"
 
                     print('Ready to insert data into the database!')
-                    db.insert_weather_data(country_id, date, weather_code, mean_temperature, mean_surface_pressure, precipitation_sum, relative_humidity, wind_speed)  
+                    db.insert_weather_data(country_id, date, weather_code, weather_description, mean_temperature, mean_surface_pressure, precipitation_sum, relative_humidity, wind_speed)  
                     status = 'processed'
                     processed_directory_name = '../data/processed/weather_data/'
                     

@@ -15,8 +15,12 @@ CREATE TABLE transform.transform_log(
 CREATE TABLE transform.weather_data_import(
     id SERIAL PRIMARY KEY,
     country_id INT NOT NULL,
+    country_code VARCHAR(10) NOT NULL,
+    latitude DECIMAL(9,6) NOT NULL,
+    longitude DECIMAL(9,6) NOT NULL,
     date DATE NOT NULL,
     weather_code VARCHAR(10) NOT NULL,
+    weather_description VARCHAR(255) NOT NULL,
     mean_temperature DECIMAL(5,2) NOT NULL,
     mean_surface_pressure DECIMAL(6,2) NOT NULL,
     precipitation_sum DECIMAL(5,2) NOT NULL,
@@ -28,6 +32,9 @@ CREATE TABLE transform.weather_data_import(
 CREATE TABLE transform.covid_data_import(
     id SERIAL PRIMARY KEY,
     country_id INT NOT NULL,
+    country_code VARCHAR(10) NOT NULL,
+    latitude DECIMAL(9,6) NOT NULL,
+    longitude DECIMAL(9,6) NOT NULL,
     date DATE NOT NULL,
     confirmed_cases INT NOT NULL,
     deaths INT NOT NULL,
