@@ -21,11 +21,6 @@ class DatabaseConnector:
         query = """
         INSERT INTO extract.country (code, name, latitude, longitude, capital)
         VALUES (%s, %s, %s, %s, %s)
-        ON CONFLICT (code) DO UPDATE
-        SET name = EXCLUDED.name,
-            latitude = EXCLUDED.latitude,
-            longitude = EXCLUDED.longitude,
-            capital = EXCLUDED.capital;
         """
         self.cursor.execute(query, (code, name, latitude, longitude, capital))
         self.connection.commit()
