@@ -190,6 +190,3 @@ streamlit/
 
 # VS Code
 .vscode/
-
-# Steamlit
-.streamlit/

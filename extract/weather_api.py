@@ -1,13 +1,12 @@
-import time
 import requests
-
+from common.utils import timestamp
 class WeatherAPI:
     def __init__(self, api_id, base_url):
         self.base_url = base_url
         self.api_id = api_id
 
     def get_endpoint(self, **params):
-        query_string = '&'.join([f'{key}={value}' for key, value in params.items()])
+        query_string = "&".join([f"{key}={value}" for key, value in params.items()])
         return f"{self.base_url}?{query_string}"
 
     def prepare_weather_params(self, country, date):
@@ -52,7 +51,7 @@ class WeatherAPI:
         params = self.prepare_weather_params(country, date)
         complete_url = self.get_endpoint(**params)
 
-        start_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+        start_time = timestamp()
         try:
             response = requests.get(complete_url, timeout=10)
             return response, start_time
@@ -61,20 +60,19 @@ class WeatherAPI:
 
     def get_response(self, response):
         code_response = 404
-        error_message = ''
-        end_time = ''
+        error_message = "Not Found"
+        end_time = ""
         response_body = None
 
         try:
             json_response = response.json()
-            end_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+            end_time = timestamp()
             code_response = response.status_code
             response_body = json_response
-            error_message = json_response.get('reason') or ''
+            error_message = json_response.get('reason') or ""
         except requests.exceptions.JSONDecodeError:
             error_text = response.text
-            end_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+            end_time = timestamp()
             response_body = error_text
-            error_message = "Not Found"
 
         return end_time, code_response, error_message, response_body
