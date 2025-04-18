@@ -47,7 +47,7 @@ CREATE TABLE load.dim_weather_code (
 CREATE TABLE load.fact_covid_data (
     id SERIAL PRIMARY KEY,
     country_id INT NOT NULL,
-    date BIGINT NOT NULL,
+    date_id BIGINT NOT NULL,
     confirmed_cases INT,
     deaths INT,
     recovered INT,

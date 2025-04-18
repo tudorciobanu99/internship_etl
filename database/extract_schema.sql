@@ -40,7 +40,7 @@ CREATE TABLE extract.api_import_log (
     FOREIGN KEY (api_id) REFERENCES extract.api_info(id)
 )
 
--- Inserting the api information
+-- Inserting the api information EXAMPLE
 INSERT INTO extract.api_info (api_name, api_base_url)
 VALUES ('Weather API', 'https://historical-forecast-api.open-meteo.com/v1/forecast'),
 	   ('COVID API', 'https://covid-api.com/api/reports/total');

@@ -180,6 +180,13 @@ database_password.env
 myenv/
 data/
 weather_description/
+streamlit/
 
 # DS_Store
 .DS_Store
+
+# Pylint
+.pylintrc
+
+# VS Code
+.vscode/
