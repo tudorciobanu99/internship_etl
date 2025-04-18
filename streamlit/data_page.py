@@ -27,13 +27,17 @@ def covid_vs_weather(db, selected_country):
     df = df.dropna(subset=["date", "mean_temperature", "confirmed_cases"])
     df["confirmed_cases"] = df["confirmed_cases"].apply(lambda x: max(x, 0))
 
-    if selected_country != "All":
+    if selected_country != "All countries":
         df = df[df["country_code"] == selected_country]
     else:
         df = df.groupby(["mean_temperature", "relative_humidity"]).agg(
             confirmed_cases=("confirmed_cases", "sum"),
             deaths=("deaths", "sum")
         ).reset_index()
+
+    min_val = df["confirmed_cases"].min()
+    max_val = df["confirmed_cases"].max()
+    mid_val = df["confirmed_cases"].mean()
 
     fig = px.density_heatmap(
         df,
@@ -56,12 +60,16 @@ def covid_vs_weather(db, selected_country):
         hovermode = "x unified",
         xaxis_title="Mean Temperature (°C)",
         yaxis_title="Relative Humidity (%)",
-        coloraxis_colorbar=dict(title="Confirmed Cases"),
+        coloraxis_colorbar=dict(
+            title="Confirmed Cases",
+            tickvals=[min_val, mid_val, max_val],
+            ticktext=[f"Low ({min_val:,})", f"Avg ({int(mid_val):,})", f"High ({max_val:,})"]
+        )
     )
     return fig
 
 def covid_and_weather_summary_stats(db, selected_country):
-    query = f"""
+    query = """
         WITH sum_stats AS (
             SELECT
                 MIN(d.date) AS start_date,
@@ -75,7 +83,7 @@ def covid_and_weather_summary_stats(db, selected_country):
             JOIN load.dim_country c ON f.country_id = c.country_id
             JOIN load.fact_weather_data w ON f.country_id = w.country_id AND f.date_id = w.date_id
             JOIN load.dim_date d ON f.date_id = d.date_id
-            WHERE c.country_code = '{selected_country}'
+            WHERE c.country_code = %s
         ),
         most_frequent_weather AS (
             SELECT
@@ -86,7 +94,7 @@ def covid_and_weather_summary_stats(db, selected_country):
             FROM load.fact_weather_data w
             JOIN load.dim_weather_code wc ON w.weather_code = wc.weather_code
             JOIN load.dim_country c ON w.country_id = c.country_id
-            WHERE c.country_code = '{selected_country}'
+            WHERE c.country_code = %s
             GROUP BY w.weather_code, wc.description
         )
         SELECT
@@ -102,7 +110,8 @@ def covid_and_weather_summary_stats(db, selected_country):
         FROM sum_stats s
         LEFT JOIN most_frequent_weather mf ON mf.rank = 1;
     """
-    data = db.fetch_rows(query)
+    values = (selected_country, selected_country)
+    data = db.fetch_rows(query, values)
     df = pd.DataFrame(data, columns=[
         "start_date", "end_date", "avg_temperature", "avg_humidity",
         "total_confirmed_cases", "total_deaths", "total_recovered_cases",
@@ -163,6 +172,7 @@ def peak_of_new_cases(db):
     df = df.dropna(subset=["peak_date"])
     df = df.sort_values(by="peak_rank")
     df["peak_date"] = df["peak_date"].dt.strftime("%Y-%m-%d")
+    df["new_cases"] = df["new_cases"].apply(lambda x: max(x, 0))
 
     fig = px.bar(
         df,
@@ -170,12 +180,25 @@ def peak_of_new_cases(db):
         y="new_cases",
         color="peak_date",
         text="new_cases",
-        title="Worst single day spike of new cases",
+        title="Worst Single Day Spike of New COVID-19 Cases",
         labels={"new_cases": "New Cases", "country_code": "Country", "peak_date": "Date"},
-        hover_data=["peak_date"]
+        color_discrete_sequence=px.colors.sequential.Reds[::-1],
+        hover_data={"new_cases": ":,", "peak_date": True, "country_code": True}
     )
-    fig.update_traces(hovertemplate=None)
-    fig.update_layout(xaxis_tickangle=-45, hovermode="x unified")
+    fig.update_traces(
+        texttemplate="%{text:,}",
+        textposition="outside",
+        hovertemplate="<b>Country:</b> %{x}<br>" +
+                      "<b>New Cases:</b> %{y:,}<br>" +
+                      "<b>Peak Date:</b> %{customdata[0]}<extra></extra>",
+        marker=dict(line=dict(color="black", width=1))
+    )
+    fig.update_layout(
+        hovermode="x unified",
+        xaxis_title="Country",
+        yaxis_title="New Cases (Peak)",
+        legend_title="Peak Date"
+    )
     return fig
 
 def covid_vs_date(db,selected_country, start_date, end_date):
@@ -196,17 +219,16 @@ def covid_vs_date(db,selected_country, start_date, end_date):
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df = df.dropna(subset=["date"])
     df = df.sort_values(by="date")
-    df["deaths"] = df["deaths"].apply(lambda x: max(x, 0))
 
-    if selected_country != "All":
+    if selected_country != "All countries":
         df = df[df["country_code"] == selected_country]
     else:
         df = df.groupby(["date", "is_weekend"]).agg(
             deaths=("deaths", "sum")
         ).reset_index()
-        df = df.sort_values(by="date")
 
     df["weekend_label"] = df["is_weekend"].map({True: "Weekend", False: "Weekday"})
+    df = df.sort_values(by="date")
 
     fig = px.line(
         df,
@@ -216,14 +238,20 @@ def covid_vs_date(db,selected_country, start_date, end_date):
         color="weekend_label",
         labels={"weekend_label": "Day Type", "deaths": "Deaths"},
         markers=True,
-        hover_data={"date": "|%Y-%m-%d", "deaths": ":,"}
+        hover_data={"date": False, "deaths": False}
     )
-    fig.update_traces(hovertemplate=None)
+    fig.update_traces(
+        line=dict(width=2),
+        marker=dict(size=6, line=dict(width=1, color="black")),
+        hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>" +
+                      "<b>Deaths:</b> %{y:,}<br>" +
+                      "<b>Day Type:</b> %{fullData.name}<extra></extra>",
+    )
     fig.update_layout(
-        hovermode="x unified",
-        xaxis_title="Date",
-        yaxis_title="Deaths",
-        legend_title="Day Type",
-        template="plotly_white"
+            hovermode="x unified",
+            xaxis_title="Date",
+            yaxis_title="Number of Deaths",
+            legend_title="Day Type",
+            template="plotly_white"
     )
     return fig

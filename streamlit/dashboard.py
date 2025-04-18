@@ -2,10 +2,8 @@ import os
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import pandas as pd
-from log_page import (success_rate_choropleth_map, display_summary_statistics,
-                      rolling_average_rows, daily_api_time, transformation_rates_by_day_type)
-from data_page import (covid_and_weather_summary_stats, covid_vs_date,
-                       covid_vs_weather, peak_of_new_cases)
+import log_page as lp
+import data_page as dp
 from common.database_connector import DatabaseConnector
 import streamlit as st
 
@@ -65,7 +63,7 @@ def api_selector(db):
     selected_api = st.selectbox("Select API:", options=api_options, index=0)
     return selected_api
 
-def country_selector(db):
+def country_selector(db, key):
     query = """
         SELECT name FROM extract.country
     """
@@ -73,7 +71,18 @@ def country_selector(db):
     df = pd.DataFrame(data, columns=["country"])
     country_options = df["country"].unique()
     selected_country = st.selectbox("Select Country:",
-                                options=["All"] + list(country_options), index=0)
+                                options=["All countries"] + list(country_options), index=0, key=key)
+    return selected_country
+
+def code_selector(db, key):
+    query = """
+        SELECT country_code FROM load.dim_country
+    """
+    data = db.fetch_rows(query)
+    df = pd.DataFrame(data, columns=["country_code"])
+    country_options = df["country_code"].unique()
+    selected_country = st.selectbox("Select Country:",
+                                options=["All countries"] + list(country_options), index=0, key=key)
     return selected_country
 
 def date_slider(past=None):
@@ -81,7 +90,6 @@ def date_slider(past=None):
     if past:
         today = today.replace(year=2022)
     one_month = today - timedelta(days=30)
-    st.subheader("Daily API time")
 
     start_date, end_date = st.slider(
         "Select date range:",
@@ -94,54 +102,62 @@ def date_slider(past=None):
 
 def api_and_logs(db):
     centered_title("API and Logs from the ETL Process")
-    col1, col2 = st.columns(2)
+    col1, _ = st.columns(2)
     with col1:
         selected_api = api_selector(db)
-        selected_country = country_selector(db)
 
-        fig = success_rate_choropleth_map(db, selected_api, selected_country)
+    col21, col22 = st.columns(2)
+    with col21:
+        selected_country = country_selector(db, key="1")
+
+        fig = lp.success_rate_choropleth_map(db, selected_api, selected_country)
         st.plotly_chart(fig, key=f"choro_{selected_country}_{selected_api}")
-        if selected_country != "All":
-            df, pie_fig = display_summary_statistics(db, selected_country)
-            col1, col2 = st.columns(2)
-            with col1:
+        if selected_country != "All countries":
+            df, pie_fig = lp.display_summary_statistics(db, selected_country)
+            col11, col21 = st.columns(2)
+            with col11:
                 st.subheader(f"Summary Statistics for {selected_country}")
                 st.metric("Total API Calls", f"{df['Total Calls'][0]:,}")
                 st.metric("Successful Calls", f"{df['Successful Calls'][0]:,}")
                 st.metric("Failed Calls", f"{df['Failed Calls'][0]:,}")
                 st.metric("Average Extraction Time",
                           f"{df['Avg Extraction Time (s)'][0]:.2f} seconds")
-            with col2:
+            with col21:
                 st.subheader("Response Codes Distribution")
                 st.plotly_chart(pie_fig, key=f"pie_chart_{selected_country}")
-    with col2:
-        selected_country = country_selector(db)
-        if selected_country != "All":
-            fig = rolling_average_rows(db, selected_country)
+    with col22:
+        selected_country = country_selector(db, key="2")
+        if selected_country != "All countries":
+            fig = lp.rolling_average_rows(db, selected_country)
             st.plotly_chart(fig)
         else:
             st.warning("Please select a specific country to view the rolling average.")
 
-    col3, col4 = st.columns(2)
+    col3, _ = st.columns(2)
     with col3:
         start_date, end_date = date_slider()
-        daily_api_time(db, start_date, end_date)
-    with col4:
-        transformation_rates_by_day_type(db)
+    col5, col6 = st.columns(2)
+    with col5:
+        fig = lp.daily_api_time(db, start_date, end_date)
+        st.plotly_chart(fig)
+    with col6:
+        fig = lp.transformation_rates_by_day_type(db)
+        st.plotly_chart(fig)
 
 def covid_and_weather(db):
     centered_title("Weather and COVID Data")
-    col1, col2 = st.columns(2)
-    selected_country = "All"
+    col1, _ = st.columns(2)
+    selected_country = "All countries"
     with col1:
-        selected_country = country_selector(db)
-        fig = covid_vs_weather(db, selected_country)
-        st.plotly_chart(fig)
-    with col2:
-        st.subheader(f"Summary Statistics for {selected_country}:")
-        df = covid_and_weather_summary_stats(db, selected_country)
+        selected_country = code_selector(db, key="3")
 
-        if selected_country != "All":
+    col11, col12 = st.columns(2)
+    with col11:
+        fig = dp.covid_vs_weather(db, selected_country)
+        st.plotly_chart(fig)
+    with col12:
+        if selected_country != "All countries":
+            df = dp.covid_and_weather_summary_stats(db, selected_country)
             col1, col2 = st.columns(2)
             with col1:
                 st.metric("First Collection Date", df["start_date"][0].strftime("%Y-%m-%d"))
@@ -154,13 +170,15 @@ def covid_and_weather(db):
             weather_description_format(df)
         else:
             st.warning("Please select a specific country to view summary statistics!")
-    col3, col4 = st.columns(2)
+    col3, _ = st.columns(2)
     with col3:
         start_date, end_date = date_slider(past=True)
-        fig = covid_vs_date(db, selected_country, start_date, end_date)
+    col31, col32 = st.columns(2)
+    with col31:
+        fig = dp.covid_vs_date(db, selected_country, start_date, end_date)
         st.plotly_chart(fig)
-    with col4:
-        fig = peak_of_new_cases(db)
+    with col32:
+        fig = dp.peak_of_new_cases(db)
         st.plotly_chart(fig)
 
 if __name__ == '__main__':
