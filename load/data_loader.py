@@ -1,6 +1,4 @@
-import psycopg2 as pg
-from database_connector import DatabaseConnector
-
+from common.database_connector import DatabaseConnector
 class DataLoader(DatabaseConnector):
     def merge_dim_country(self):
         query = """
@@ -34,11 +32,7 @@ class DataLoader(DatabaseConnector):
                 INSERT (country_id, country_code, latitude, longitude, hash_value)
                 VALUES (source.country_id, source.country_code, source.latitude, source.longitude, source.hash_value);
         """
-        try:
-            self.cursor.execute(query)
-            self.connection.commit()
-        except pg.Error:
-            self.rollback_transaction()
+        self.execute_query(query)
 
     def merge_dim_date(self):
         query = """
@@ -81,11 +75,7 @@ class DataLoader(DatabaseConnector):
                 VALUES (source.date_id, source.date, source.year, source.month, source.day, source.day_of_week,
                 source.is_weekend, source.hash_value);
         """
-        try:
-            self.cursor.execute(query)
-            self.connection.commit()
-        except pg.Error:
-            self.rollback_transaction()
+        self.execute_query(query)
 
     def merge_dim_weather_description(self):
         query = """
@@ -106,11 +96,7 @@ class DataLoader(DatabaseConnector):
                 INSERT (weather_code, description, hash_value)
                 VALUES (source.weather_code, source.weather_description, source.hash_value);
         """
-        try:
-            self.cursor.execute(query)
-            self.connection.commit()
-        except pg.Error:
-            self.rollback_transaction()
+        self.execute_query(query)
 
     def merge_fact_covid(self):
         query = """
@@ -146,11 +132,7 @@ class DataLoader(DatabaseConnector):
                 VALUES (source.country_id, source.date_id, source.confirmed_cases, source.deaths,
                 source.recovered, source.hash_value, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
         """
-        try:
-            self.cursor.execute(query)
-            self.connection.commit()
-        except pg.Error:
-            self.rollback_transaction()
+        self.execute_query(query)
 
     def merge_fact_weather(self):
         query = """
@@ -197,8 +179,4 @@ class DataLoader(DatabaseConnector):
                 source.mean_surface_pressure, source.precipitation_sum, source.relative_humidity, source.wind_speed,
                 source.hash_value, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
         """
-        try:
-            self.cursor.execute(query)
-            self.connection.commit()
-        except pg.Error:
-            self.rollback_transaction()
+        self.execute_query(query)
