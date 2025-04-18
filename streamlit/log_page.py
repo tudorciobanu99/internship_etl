@@ -16,15 +16,13 @@ def success_rate_choropleth_map(db, selected_api, selected_country):
         GROUP BY log.api_id, a.api_name, c.name, c.code, c.latitude, c.longitude
         ORDER BY api, country;
     """
-
     data = db.fetch_rows(query)
     df = pd.DataFrame(data, columns=["api", "country", "country_code",
                                      "latitude", "longitude", "success_rate"])
 
-    filtered_df = df[df["api"] == selected_api].copy()
-
+    df = df[df["api"] == selected_api]
     if selected_country != "All":
-        country_data = filtered_df[filtered_df["country"] == selected_country].iloc[0]
+        country_data = df[df["country"] == selected_country].iloc[0]
         center_lat = country_data["latitude"]
         center_lon = country_data["longitude"]
         zoom_scope = False
@@ -36,8 +34,8 @@ def success_rate_choropleth_map(db, selected_api, selected_country):
     bins = [0,10,20,30,40,50,60,70,80,90,100]
     labels = ['0-10%', '10-20%', '20-30%', '30-40%', '40-50%',
               '50-60%', '60-70%', '70-80%', '80-90%', '90-100%']
-    filtered_df['success_bin'] = pd.cut(filtered_df['success_rate'], bins=bins, labels=labels)
-    filtered_df['success_bin'] = filtered_df['success_bin'].astype(str)
+    df['success_bin'] = pd.cut(df['success_rate'], bins=bins, labels=labels)
+    df['success_bin'] = df['success_bin'].astype(str)
 
     color_map = {
         '0-10%': '#d73027',
@@ -53,7 +51,7 @@ def success_rate_choropleth_map(db, selected_api, selected_country):
     }
 
     fig = px.choropleth(
-        filtered_df,
+        df,
         locations="country_code",
         color="success_bin",
         hover_name="country",
@@ -89,8 +87,8 @@ def display_summary_statistics(db, selected_country):
         WHERE c.name = %s;
     """
     values = (selected_country,)
-    data = db.fetch_rows(query, values)
-    df = pd.DataFrame(data, columns=["Total Calls", "Avg Extraction Time (s)",
+    smry_data = db.fetch_rows(query, values)
+    df = pd.DataFrame(smry_data, columns=["Total Calls", "Avg Extraction Time (s)",
                                      "Successful Calls", "Failed Calls"])
 
     query = """
@@ -103,22 +101,10 @@ def display_summary_statistics(db, selected_country):
         GROUP BY code_response
         ORDER BY total_calls DESC;
     """
-    data = db.fetch_rows(query, values)
-    df_response = pd.DataFrame(data, columns=["code_response", "total_calls"])
+    calls_data = db.fetch_rows(query, values)
+    df_response = pd.DataFrame(calls_data, columns=["code_response", "total_calls"])
     pie_fig = px.pie(df_response, values='total_calls', names='code_response')
     return df, pie_fig
-
-    # col1, col2 = st.columns(2)
-    # with col1:
-    #     st.subheader(f"Summary Statistics for {selected_country}")
-    #     st.metric("Total API Calls", f"{df['Total Calls'][0]:,}")
-    #     st.metric("Successful Calls", f"{df['Successful Calls'][0]:,}")
-    #     st.metric("Failed Calls", f"{df['Failed Calls'][0]:,}")
-    #     st.metric("Average Extraction Time", f"{df['Avg Extraction Time (s)'][0]:.2f} seconds")
-    # with col2:
-    #     st.subheader("Response Codes Distribution")
-    #     pie_fig = px.pie(df_response, values='total_calls', names='code_response')
-    #     st.plotly_chart(pie_fig, key=f"pie_chart_{selected_country}")
 
 def rolling_average_rows(db, selected_country):
     query = """
@@ -184,7 +170,8 @@ def daily_api_time(db, start_date, end_date):
 
     full_date_range = pd.date_range(start=start_date, end=end_date)
     full_df = pd.DataFrame(full_date_range, columns=["api_date"])
-    df = pd.merge(full_df, df, on="api_date", how="left").fillna({"daily_api_time": 0, "total_calls": 0})
+    df = pd.merge(full_df, df, on="api_date", how="left")
+    df = df.fillna({"daily_api_time": 0, "total_calls": 0})
     df = df.sort_values(by="api_date")
 
     fig = px.line(
@@ -196,16 +183,13 @@ def daily_api_time(db, start_date, end_date):
         range_y = (-2, max(df["daily_api_time"].max()*2, 2)),
                 hover_data={"api_date": "|%Y-%m-%d", "daily_api_time": ":.2f", "total_calls": ":,"}
     )
-    fig.update_traces(mode="lines+markers")
+    fig.update_traces(mode="lines+markers", hovertemplate=None)
     fig.update_layout(
         xaxis_title="Date",
         yaxis_title="Daily API Time (s)",
         hovermode="x unified",
         legend_title_text="API Time"
     )
-    fig.update_traces(hovertemplate=None)
-    fig.update_layout(
-        hovermode = "x unified")
     return fig
 
 def transformation_rates_by_day_type(db):
@@ -222,16 +206,23 @@ def transformation_rates_by_day_type(db):
         GROUP BY day_type
         ORDER BY day_type;
     """
-
     data = db.fetch_rows(query)
-    df = pd.DataFrame(data, columns=["day_type", "total_transformations", "successful_transformations", "failed_transformations"])
-    df_renamed = df.rename(columns={
+    df = pd.DataFrame(
+        data,
+        columns=[
+            "day_type",
+            "total_transformations",
+            "successful_transformations",
+            "failed_transformations"
+        ]
+    )
+    df = df.rename(columns={
     "successful_transformations": "Successful Transformations",
     "failed_transformations": "Failed Transformations"
     })
 
     fig = px.bar(
-        df_renamed,
+        df,
         x="day_type",
         y=["Successful Transformations", "Failed Transformations"],
         labels={
@@ -247,8 +238,7 @@ def transformation_rates_by_day_type(db):
         xaxis_title="Day Type",
         yaxis_title="Number of Transformations",
         legend_title="Transformation Status",
+        hovermode = "x unified"
     )
     fig.update_traces(hovertemplate=None)
-    fig.update_layout(
-        hovermode = "x unified")
     return fig
