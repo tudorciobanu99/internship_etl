@@ -21,7 +21,7 @@ def success_rate_choropleth_map(db, selected_api, selected_country):
                                      "latitude", "longitude", "success_rate"])
 
     df = df[df["api"] == selected_api]
-    if selected_country != "All":
+    if selected_country != "All countries":
         country_data = df[df["country"] == selected_country].iloc[0]
         center_lat = country_data["latitude"]
         center_lon = country_data["longitude"]
@@ -73,6 +73,16 @@ def success_rate_choropleth_map(db, selected_api, selected_country):
         coloraxis_colorbar=dict(title="Success Rate (%)"),
         legend_title=dict(text="Success Rate Range")
     )
+    fig.update_traces(
+        hovertemplate=(
+            "<b>%{hovertext}</b><br><br>" +
+            "Success Rate: %{customdata[0]:.2f}%<br>" +
+            "Range: %{customdata[1]}<br>" +
+            "<extra></extra>"
+        ),
+        hovertext=df["country"],
+        customdata=df[["success_rate", "success_bin"]]
+    )
     return fig
 
 def display_summary_statistics(db, selected_country):
@@ -103,7 +113,18 @@ def display_summary_statistics(db, selected_country):
     """
     calls_data = db.fetch_rows(query, values)
     df_response = pd.DataFrame(calls_data, columns=["code_response", "total_calls"])
+    df_response["hover_label"] = df_response.apply(
+        lambda row: f"Code: {row['code_response']}<br>Total Calls: {row['total_calls']:,}", axis=1
+    )
+
     pie_fig = px.pie(df_response, values='total_calls', names='code_response')
+    pie_fig.update_traces(
+        hoverinfo="label+percent+value",
+        hovertemplate="<b>%{label}</b><br>" +
+                    "Total Calls: %{value:,}<br>" +
+                    "Percentage: %{percent}<br>" +
+                    "<extra></extra>"
+    )
     return df, pie_fig
 
 def rolling_average_rows(db, selected_country):
@@ -138,17 +159,26 @@ def rolling_average_rows(db, selected_country):
         y="daily_rows_imported",
         labels={"daily_rows_imported": "Daily Rows Imported", "batch_date": "Date"},
         title=f"Daily Rows Imported for {selected_country}",
+        opacity=0.7
     )
     fig.add_scatter(
         x=df["batch_date"],
         y=df["rolling_avg_rows"],
         mode="lines+markers",
-        name="7 day rolling average",
-        line=dict(color="red"),
+        name="7 Day Rolling Average",
+        line=dict(color="red", width=3, dash="solid"),
+        marker=dict(size=7, color="red", symbol="circle", line=dict(color="darkred")),
+        hoverinfo="y",
+        hovertemplate="<b>7-Day Avg:</b> %{y:,.2f}<extra></extra>"
     )
-    fig.update_traces(hovertemplate=None)
+    fig.update_traces(
+        hoverinfo="y",
+        hovertemplate="<b>Rows Imported:</b> %{y:,}<extra></extra>",
+        selector=dict(type='bar')
+    )
     fig.update_layout(
-        hovermode = "x unified")
+        hovermode="x unified"
+    )
     return fig
 
 
@@ -159,11 +189,11 @@ def daily_api_time(db, start_date, end_date):
             COUNT(*) AS total_calls,
             SUM(EXTRACT(EPOCH FROM (end_time - start_time))) AS daily_api_time
         FROM extract.api_import_log
-        WHERE start_time >= %s AND start_time <= %s 23:59:59'
+        WHERE start_time >= %s AND start_time <= %s
         GROUP BY api_date
         ORDER BY api_date;
     """
-    values = (start_date, end_date)
+    values = (start_date, str(end_date) + " 23:59:59")
     data = db.fetch_rows(query, values)
     df = pd.DataFrame(data, columns=["api_date", "total_calls", "daily_api_time"])
     df["api_date"] = pd.to_datetime(df["api_date"], errors="coerce")
@@ -181,14 +211,28 @@ def daily_api_time(db, start_date, end_date):
         labels={"daily_api_time": "Daily API Time (s)", "api_date": "Date"},
         title="Daily API Time Over Selected Date Range",
         range_y = (-2, max(df["daily_api_time"].max()*2, 2)),
-                hover_data={"api_date": "|%Y-%m-%d", "daily_api_time": ":.2f", "total_calls": ":,"}
+        range_x = (start_date, end_date)
     )
-    fig.update_traces(mode="lines+markers", hovertemplate=None)
+    fig.update_traces(
+        mode="lines+markers",
+        line=dict(color="#1f77b4", width=2),
+        marker=dict(
+            size=8,
+            color="#1f77b4",
+            line=dict(width=2, color="white")
+        ),
+        hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>" +
+                    "<b>API Time:</b> %{y:.2f} seconds<br>" +
+                    "<b>Total Calls:</b> %{customdata:,}<extra></extra>",
+        customdata=df[["total_calls"]],
+        fill="tozeroy"
+    )
     fig.update_layout(
         xaxis_title="Date",
-        yaxis_title="Daily API Time (s)",
+        yaxis_title="Daily API Time (seconds)",
         hovermode="x unified",
-        legend_title_text="API Time"
+        plot_bgcolor="white",
+        margin=dict(t=80, l=50, r=30, b=50)
     )
     return fig
 
@@ -240,5 +284,12 @@ def transformation_rates_by_day_type(db):
         legend_title="Transformation Status",
         hovermode = "x unified"
     )
-    fig.update_traces(hovertemplate=None)
+    for trace in fig.data:
+        trace_name = trace.name
+        trace.hovertemplate = (
+            "<b>Day Type:</b> %{x}<br>" +
+            f"<b>{trace_name}:</b> %{{y:,}}<extra></extra>"
+        )
+        trace.textposition = "inside"
+        trace.marker.line = dict(color="black", width=1)
     return fig
