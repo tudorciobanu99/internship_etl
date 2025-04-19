@@ -1,60 +1,92 @@
 from common.database_connector import DatabaseConnector
 class DataTransformer(DatabaseConnector):
-    def insert_initial_transform_log(self, batch_date, country_id, initial_status):
+    def insert_initial_transform_log(self, values:tuple):
+        """
+        Inserts the initial incomplete log in the extract.import_log table.
+
+        Args:
+            values (tuple): A 3-element tuple containing:
+                batch_date (str): The batch date.
+                country_id (int): The country ID.
+                status (int): Initial status of the record.
+        """
+
         query = """
             INSERT INTO transform.transform_log (batch_date, country_id, status)
             VALUES (%s, %s, %s);
         """
-        values = (batch_date, country_id, initial_status)
         self.execute_query(query, values)
 
-    def find_transform_log(self, batch_date, country_id):
+    def find_transform_log(self, values:tuple):
+        """
+        Attempts to find an initial incomplete log in the extract.import_log table.
+
+        Args:
+            values (tuple): A 2-element tuple containing:
+                batch_date (str): The batch date.
+                country_id (int): The country ID.
+
+        Returns:
+            log_id (int): The ID of the log, if successful.
+        """
+
         query = """
             SELECT id
             FROM transform.transform_log
             WHERE batch_date = %s AND country_id = %s
             AND status = %s;
         """
-        values = (batch_date, country_id, "processing")
         row = self.fetch_rows(query, values)
         if row:
-            return row[0][0]
+            log_id = row[0][0]
+            return log_id
 
-    def update_transform_log(self, **params):
-        batch_date, country_id, p_dir_name, p_file_name, row_count, status = (
-            params.get("batch_date"),
-            params.get("country_id"),
-            params.get("p_dir_name"),
-            params.get("p_file_name"),
-            params.get("row_count"),
-            params.get("status")
-        )
-        log_id = self.find_transform_log(batch_date, country_id)
+    def update_transform_log(self, values:tuple):
+        """
+        Attempts to complete an initial incomplete log in the extract.import_log table.
+        If successful, it updates the row with additional information.
 
+        Args:
+            values (tuple): A 6-element tuple containing:
+                batch_date (str): The batch date.
+                country_id (int): The country ID.
+                p_dir_name (str): The directory the processed file is moved to.
+                p_file_name (str): The name of the processed file.
+                row_count (int): The number of rows of the processed file.
+                status (str): Generally, either processed or error.
+        """
+
+        log_values = values[:2] + ("processing",)
+        log_id = self.find_transform_log(log_values)
         if log_id:
             update_query = """
                 UPDATE transform.transform_log
                 SET processed_directory_name = %s, processed_file_name = %s, row_count = %s, status = %s
                 WHERE id = %s;
             """
-            values = (p_dir_name, p_file_name, row_count, status, log_id)
-            self.execute_query(update_query, values)
+            update_values = values[2:] + (log_id,)
+            self.execute_query(update_query, update_values)
 
-    def insert_weather_data(self, **params):
-        (country_id, date, weather_code, weather_description, mean_temperature,
-         mean_surface_pressure, precipitation_sum, relative_humidity, wind_speed) = (
-            params.get("country_id"),
-            params.get("date"),
-            params.get("weather_code"),
-            params.get("weather_description"),
-            params.get("mean_temperature"),
-            params.get("mean_surface_pressure"),
-            params.get("precipitation_sum"),
-            params.get("relative_humidity"),
-            params.get("wind_speed")
-        )
-        country_code, latitude, longitude = self.fetch_country_details(country_id)
-        if all([country_code, latitude, longitude]):
+    def insert_weather_data(self, values:tuple):
+        """
+        Inserts the weather data extracted from a processed file.
+
+        Args:
+            values (tuple): A 9-element tuple containing:
+                country_id (int): The country ID.
+                date (str): The given date for which the weather was extracted.
+                weather_code (str): The weather for that date.
+                weather_description (str): The description given the weather code.
+                mean_temperature (float): The mean temperature.
+                mean_surface_pressure (float): The mean surface pressure.
+                precipitation_sum (float): The precipitation sum.
+                relative_humidity (float): The relative humidity.
+                wind_speed (float): The wind speed.
+        """
+
+        country_id = values[0]
+        country_code, name, latitude, longitude = self.fetch_country_details(country_id)
+        if all([country_code, name, latitude, longitude]):
             query = """
             INSERT INTO transform.weather_data_import (
                 country_id, country_code, latitude, longitude, date, weather_code, weather_description,
@@ -63,25 +95,25 @@ class DataTransformer(DatabaseConnector):
             )
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
             """
-            values = (
-                int(country_id), country_code, float(latitude), float(longitude), date,
-                weather_code, weather_description, mean_temperature,
-                mean_surface_pressure, precipitation_sum,
-                relative_humidity, wind_speed
-            )
-            self.execute_query(query, values)
+            data = (int(country_id), country_code, float(latitude), float(longitude)) + values[1:]
+            self.execute_query(query, data)
 
-    def insert_covid_data(self, **params):
-        country_id, date, confirmed_cases, deaths, recovered = (
-            params.get("country_id"),
-        params.get("date"),
-        params.get("confirmed_cases"),
-        params.get("deaths"),
-        params.get("recovered")
-        )
-        country_code, latitude, longitude = self.fetch_country_details(country_id)
+    def insert_covid_data(self, values:tuple):
+        """
+        Inserts the COVID-19 data extracted from a processed file.
 
-        if all([country_code, latitude, longitude]):
+        Args:
+            values (tuple): A 9-element tuple containing:
+                country_id (int): The country ID.
+                date (str): The given date for which the weather was extracted.
+                confirmed_cases (int): The number of confirmed cases.
+                deaths (int): The number of deaths.
+                recovered (int): The number of recovered patients.
+        """
+
+        country_id = values[0]
+        country_code, name, latitude, longitude = self.fetch_country_details(country_id)
+        if all([country_code, name, latitude, longitude]):
             query = """
                 INSERT INTO transform.covid_data_import (
                     country_id, country_code, latitude, longitude, date,
@@ -89,8 +121,5 @@ class DataTransformer(DatabaseConnector):
                 )
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
             """
-            values = (
-                int(country_id), country_code, float(latitude), float(longitude),
-                date, confirmed_cases, deaths, recovered
-            )
-            self.execute_query(query, values)
+            data = (int(country_id), country_code, float(latitude), float(longitude)) + values[1:]
+            self.execute_query(query, data)
