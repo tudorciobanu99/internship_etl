@@ -1,4 +1,4 @@
--- This script creates the schema and tables for the transform process
+-- This script creates the schema and tables for the transform process.
 CREATE SCHEMA transform;
 
 CREATE TABLE transform.transform_log(

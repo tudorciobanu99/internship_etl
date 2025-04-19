@@ -1,4 +1,4 @@
--- This script creates the schema and tables for the extract process
+-- This script creates the schema and tables for the extract process.
 CREATE SCHEMA extract;
 
 CREATE TABLE extract.country (
@@ -39,11 +39,11 @@ CREATE TABLE extract.api_import_log (
     FOREIGN KEY (api_id) REFERENCES extract.api_info(id)
 )
 
--- Inserting the api information EXAMPLE
 INSERT INTO extract.api_info (api_name, api_base_url)
 VALUES ('Weather API', 'https://historical-forecast-api.open-meteo.com/v1/forecast'),
 	   ('COVID API', 'https://covid-api.com/api/reports/total');
 
+-- Sample countries for testing.
 INSERT INTO extract.country (code, name, latitude, longitude)
 VALUES ('USA', 'United States of America', 38.8951, -77.0364),
 	   ('DEU', 'Germany', 52.5200, 13.4050),
