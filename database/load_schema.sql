@@ -1,4 +1,4 @@
--- This script creates the schema and tables for the load process
+-- This script creates the schema and tables for the load process.
 CREATE SCHEMA load;
 
 CREATE TABLE load.fact_weather_data (
