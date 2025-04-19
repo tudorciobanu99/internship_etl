@@ -180,7 +180,6 @@ database_password.env
 myenv/
 data/
 weather_description/
-streamlit/
 
 # DS_Store
 .DS_Store
@@ -190,3 +189,6 @@ streamlit/
 
 # VS Code
 .vscode/
+
+# Streamlit
+.streamlit
