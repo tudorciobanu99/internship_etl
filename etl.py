@@ -18,14 +18,14 @@ def initialize_database_objects(**db_config):
 
 if __name__ == "__main__":
     # My PostgreSQL database connection details:
-    load_dotenv('database_password.env')
+    load_dotenv('database.env')
 
     db_config = {
-        "dbname": "etl",
-        "user": "postgres",
-        "host": "localhost",
-        "password": os.environ.get("db_password"),
-        "port": 5432,
+        "dbname": os.environ.get("DB_NAME"),
+        "user": os.environ.get("DB_USER"),
+        "host": os.environ.get("HOST"),
+        "password": os.environ.get("PASSWORD"),
+        "port": int(os.environ.get("PORT")),
         }
 
     # Initialize database objects
