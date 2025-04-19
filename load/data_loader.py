@@ -1,40 +1,59 @@
 from common.database_connector import DatabaseConnector
 class DataLoader(DatabaseConnector):
     def merge_dim_country(self):
+        """
+        Merges (aka. UPSERTs) the country details from the staging tables in the
+        transform schema (weather_data_import, covid_data_import) with the load.dim_country
+        dimension table. A MD5 hash value created from the concatenation of all values
+        of a given record is used to check whether a record in the load.dim_country table
+        must be updated or not.
+        """
+
         query = """
             MERGE INTO load.dim_country AS target
             USING (
                 SELECT DISTINCT
                     country_id,
                     country_code,
+                    country_name,
                     latitude,
                     longitude,
                     md5(
                         country_id || '|' ||
                         country_code || '|' ||
+                        country_name || '|' ||
                         latitude || '|' ||
                         longitude
                     ) AS hash_value
                 FROM (
-                    SELECT country_id, country_code, latitude, longitude FROM transform.covid_data_import
+                    SELECT country_id, country_code, country_name, latitude, longitude FROM transform.covid_data_import
                     UNION
-                    SELECT country_id, country_code, latitude, longitude FROM transform.weather_data_import
+                    SELECT country_id, country_code, country_name, latitude, longitude FROM transform.weather_data_import
                 ) AS combined
             ) AS source
             ON target.country_id = source.country_id
             WHEN MATCHED AND target.hash_value != source.hash_value THEN
                 UPDATE SET
                     country_code = source.country_code,
+                    country_name = source.country_name,
                     latitude = source.latitude,
                     longitude = source.longitude,
                     hash_value = source.hash_value
             WHEN NOT MATCHED THEN
-                INSERT (country_id, country_code, latitude, longitude, hash_value)
-                VALUES (source.country_id, source.country_code, source.latitude, source.longitude, source.hash_value);
+                INSERT (country_id, country_code, country_name, latitude, longitude, hash_value)
+                VALUES (source.country_id, source.country_code, source.country_name, source.latitude, source.longitude, source.hash_value);
         """
         self.execute_query(query)
 
     def merge_dim_date(self):
+        """
+        Merges (aka. UPSERTs) the date details from the staging tables in the
+        transform schema (weather_data_import, covid_data_import) with the load.dim_date
+        dimension table. A MD5 hash value created from the concatenation of all values
+        of a given record is used to check whether a record in the load.dim_date table
+        must be updated or not.
+        """
+
         query = """
             MERGE INTO load.dim_date AS target
             USING (
@@ -78,6 +97,14 @@ class DataLoader(DatabaseConnector):
         self.execute_query(query)
 
     def merge_dim_weather_description(self):
+        """
+        Merges (aka. UPSERTs) the weather description details from the staging tables in the
+        transform schema (weather_data_import, covid_data_import) with the
+        load.dim_weather_description dimension table. A MD5 hash value created from the
+        concatenation of all values of a given record is used to check whether a record in
+        the load.dim_weather_description table must be updated or not.
+        """
+
         query = """
             MERGE INTO load.dim_weather_code AS target
             USING (
@@ -99,6 +126,14 @@ class DataLoader(DatabaseConnector):
         self.execute_query(query)
 
     def merge_fact_covid(self):
+        """
+        Merges (aka. UPSERTs) the covid details from the staging tables in the
+        transform schema (weather_data_import, covid_data_import) with the load.fact_covid_data
+        fact table. A MD5 hash value created from the concatenation of all values
+        of a given record is used to check whether a record in the load.fact_covid_data table
+        must be updated or not.
+        """
+
         query = """
             MERGE INTO load.fact_covid_data AS target
             USING (
@@ -135,6 +170,14 @@ class DataLoader(DatabaseConnector):
         self.execute_query(query)
 
     def merge_fact_weather(self):
+        """
+        Merges (aka. UPSERTs) the weather details from the staging tables in the
+        transform schema (weather_data_import, covid_data_import) with the load.fact_weather_data
+        fact table. A MD5 hash value created from the concatenation of all values of a given
+        record is used to check whether a record in the load.fact_weather_data table must be
+        updated or not.
+        """
+
         query = """
             MERGE INTO load.fact_weather_data AS target
             USING (
