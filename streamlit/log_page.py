@@ -21,15 +21,14 @@ def success_rate_choropleth_map(db, selected_api, selected_country):
                                      "latitude", "longitude", "success_rate"])
 
     df = df[df["api"] == selected_api]
+    center_lat = None
+    center_lon = None
+    zoom_scope = True
     if selected_country != "All countries":
         country_data = df[df["country"] == selected_country].iloc[0]
         center_lat = country_data["latitude"]
         center_lon = country_data["longitude"]
         zoom_scope = False
-    else:
-        center_lat = None
-        center_lon = None
-        zoom_scope = True
 
     bins = [0,10,20,30,40,50,60,70,80,90,100]
     labels = ['0-10%', '10-20%', '20-30%', '30-40%', '40-50%',

@@ -136,11 +136,11 @@ def api_and_logs(db):
     col3, _ = st.columns(2)
     with col3:
         start_date, end_date = date_slider()
-    col5, col6 = st.columns(2)
-    with col5:
+    col31, col32 = st.columns(2)
+    with col31:
         fig = lp.daily_api_time(db, start_date, end_date)
         st.plotly_chart(fig)
-    with col6:
+    with col32:
         fig = lp.transformation_rates_by_day_type(db)
         st.plotly_chart(fig)
 
