@@ -16,6 +16,7 @@ CREATE TABLE transform.weather_data_import(
     id SERIAL PRIMARY KEY,
     country_id INT NOT NULL,
     country_code VARCHAR(10) NOT NULL,
+    country_name VARCHAR(100) NOT NULL,
     latitude DECIMAL(9,6) NOT NULL,
     longitude DECIMAL(9,6) NOT NULL,
     date DATE NOT NULL,

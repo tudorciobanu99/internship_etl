@@ -22,6 +22,7 @@ CREATE TABLE load.fact_weather_data (
 CREATE TABLE load.dim_country (
     country_id SERIAL PRIMARY KEY,
     country_code VARCHAR(10) NOT NULL,
+    country_name VARCHAR(100) NOT NULL,
     latitude NUMERIC(9, 6) NOT NULL,
     longitude NUMERIC(9, 6) NOT NULL,
     hash_value VARCHAR(64) NOT NULL
