@@ -36,13 +36,13 @@ class CovidAPI:
         endpoint = f"{self.base_url}?{query_string}"
         return endpoint
 
-    def prepare_covid_params(self, country, date):
+    def prepare_covid_params(self, country_code, date):
         """
         Prepares the query parameters required to complete
             the endpoint.
 
         Args:
-            country (str): ISO code for a given country.
+            country_code (str): ISO code for a given country.
             date (str): A given date.
 
         Returns:
@@ -50,7 +50,7 @@ class CovidAPI:
         """
 
         covid_params = {
-                "iso": country["code"],
+                "iso": country_code,
                 "date": date,
             }
         return covid_params
