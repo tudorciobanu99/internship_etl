@@ -113,6 +113,28 @@ def get_file_details(filename):
         batch_date = filename.split("/")[-1].split("_")[3].split(".")[0]
         return country_code, batch_date
     except Exception:
+        return None, None
+
+def check_expected_format(filename):
+    """
+    Checks whether the file follows the expected naming convention,
+    (i.e covid/weather_data_countrycode_batchdate), which includes
+    a valid batch date and a potential country_code.
+
+    Args:
+        filename (str): The name of the file
+
+    Returns:
+        country_code (str): The country code.
+        batch_date (str): The batch date.
+    """
+
+    country_code, batch_date = get_file_details(filename)
+    try:
+        if all([country_code, batch_date]):
+            datetime.strptime(batch_date, "%Y-%m-%d")
+            return country_code, batch_date
+    except ValueError:
         pass
 
 def open_file(filename):
