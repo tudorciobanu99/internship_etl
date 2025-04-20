@@ -3,13 +3,12 @@ CREATE SCHEMA transform;
 
 CREATE TABLE transform.transform_log(
     id SERIAL PRIMARY KEY,
-    batch_date DATE NOT NULL,
-    country_id INT NOT NULL,
+    batch_date DATE,
+    country_id INT,
     processed_directory_name VARCHAR(100),
     processed_file_name VARCHAR(100),
     row_count INT,
-    status VARCHAR(50) NOT NULL,
-    FOREIGN KEY (country_id) REFERENCES extract.country(id)
+    status VARCHAR(50) NOT NULL
 )
 
 CREATE TABLE transform.weather_data_import(
