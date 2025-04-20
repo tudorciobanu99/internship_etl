@@ -34,37 +34,39 @@ def e_routine(w_api:WeatherAPI, c_api:CovidAPI, db:DataExtractor, countries, dat
 
     try:
         for _, country in countries.iterrows():
+            api_log_id = db.insert_initial_api_import_log((int(country["id"]), int(w_api.api_id)))
+
             latitude, longitude = country["latitude"], country["longitude"]
             response, start_time = w_api.send_request(latitude, longitude, date)
-            db.insert_initial_api_import_log((int(country["id"]), int(w_api.api_id), start_time))
             end_time, code_resp, error_message, resp_body = w_api.get_response(response)
-            api_params = (int(country["id"]), int(w_api.api_id),
-                          start_time, end_time, code_resp, error_message)
+
+            api_params = (start_time, end_time, code_resp, error_message, int(api_log_id))
             db.update_api_import_log(api_params)
 
             w_file_name = w_imp_file_name + "_" + country["code"] + "_" + batch_date + ".json"
-            db.insert_initial_import_log((batch_date, int(country["id"]),
+            log_id = db.insert_initial_import_log((batch_date, int(country["id"]),
                                           w_imp_dir_name, w_file_name))
             save_to_json(resp_body, w_imp_dir_name, w_file_name)
             w_row_count = get_json_row_count(w_imp_dir_name, w_file_name)
-            import_params = (batch_date, int(country["id"]), w_imp_dir_name, w_file_name,
-                             file_created_date, file_last_modified_date, w_row_count)
+            import_params = (w_imp_dir_name, w_file_name, file_created_date,
+                             file_last_modified_date, w_row_count, int(log_id))
             db.update_import_log(import_params)
 
+            api_log_id = db.insert_initial_api_import_log((int(country["id"]), int(c_api.api_id)))
+
             response, start_time = c_api.send_request(country["code"], date)
-            db.insert_initial_api_import_log((int(country["id"]), int(c_api.api_id), start_time))
             end_time, code_resp, error_message, resp_body = c_api.get_response(response)
-            api_params = (int(country["id"]), int(c_api.api_id),
-                          start_time, end_time, code_resp, error_message)
+
+            api_params = (start_time, end_time, code_resp, error_message, int(api_log_id))
             db.update_api_import_log(api_params)
 
             c_file_name = c_imp_file_name + "_" + country["code"] + "_" + batch_date + ".json"
-            db.insert_initial_import_log((batch_date, int(country["id"]),
+            log_id = db.insert_initial_import_log((batch_date, int(country["id"]),
                                           c_imp_dir_name, c_file_name))
             save_to_json(resp_body, c_imp_dir_name, c_file_name)
             c_row_count = get_json_row_count(c_imp_dir_name, c_file_name)
-            import_params = (batch_date, int(country["id"]), c_imp_dir_name, c_file_name,
-                             file_created_date, file_last_modified_date, c_row_count)
+            import_params = (c_imp_dir_name, c_file_name, file_created_date,
+                             file_last_modified_date, c_row_count, log_id)
             db.update_import_log(import_params)
     except Exception:
         db.rollback_transaction()

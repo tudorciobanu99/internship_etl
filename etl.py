@@ -42,7 +42,7 @@ if __name__ == "__main__":
         "host": os.environ.get("HOST"),
         "password": os.environ.get("PASSWORD"),
         "port": int(os.environ.get("PORT")),
-        }
+    }
 
     # Initialize the required database objects for the ETL.
     e_db, t_db, l_db = initialize_database_objects(**db_config)

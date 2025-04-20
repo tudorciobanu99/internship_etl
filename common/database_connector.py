@@ -1,3 +1,4 @@
+import re
 from psycopg2 import connect, Error
 from pandas import DataFrame
 class DatabaseConnector:
@@ -98,27 +99,26 @@ class DatabaseConnector:
         countries = DataFrame(countries, columns=columns)
         return countries
 
-    def fetch_country_details(self, country_id):
+    def execute_query_and_return_id(self, query, values:tuple):
         """
-        Fetches the country details from the extract.country table
-            for a given ID.
+        Executes a query, returns the ID of the inserted record
+        and commits it to the database.
 
         Args:
-            country_id (int): ID corresponding to the a country entry.
+            query (str): The SQL query to be executed. %s placeholders
+                are expected to be bound to variables.
+            values (tuple): Tuple containing the variables to be bound
+                to the placeholders.
 
         Returns:
-            country_details (list of tuples): The row corresponding to
-                the given ID.
+            inserted_id (int): The ID of the inserted record.
         """
 
-        country_query = """
-            SELECT * FROM extract.country
-            WHERE id = %s
-        """
         try:
-            self.cursor.execute(country_query, (country_id,))
-            country_details = self.cursor.fetchone()
-            return country_details
+            self.cursor.execute(query, values)
+            inserted_id = self.cursor.fetchone()[0]
+            self.connection.commit()
+            return inserted_id
         except Error:
             self.rollback_transaction()
 
@@ -129,12 +129,13 @@ class DatabaseConnector:
         Args:
             table_name (str): The name of table to be truncated.
         """
-        query = """
-            TRUNCATE TABLE %s RESTART IDENTITY;
-        """
 
-        values = (table_name,)
-        self.execute_query(query, values)
+        if not re.fullmatch(r"[a-zA-Z0-9_.]+", table_name):
+            raise ValueError("Invalid table name!")
+
+        query = f"TRUNCATE TABLE {table_name} RESTART IDENTITY;"
+
+        self.execute_query(query)
 
     def rollback_transaction(self):
         """
