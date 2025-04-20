@@ -55,7 +55,7 @@ class CovidAPI:
             }
         return covid_params
 
-    def send_request(self, country, date):
+    def send_request(self, country_code, date):
         """
         Sends a request to the complete endpoint.
 
@@ -69,7 +69,7 @@ class CovidAPI:
                 the time the API request was sent.
         """
 
-        params = self.prepare_covid_params(country, date)
+        params = self.prepare_covid_params(country_code, date)
         complete_url = self.get_endpoint(**params)
 
         start_time = timestamp()
