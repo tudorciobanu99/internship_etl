@@ -37,7 +37,7 @@ def process_weather_file(file, country_code, batch_date, countries, db):
 
         try:
             log_values = (batch_date, int(country_id), "processing")
-            db.insert_initial_transform_log(log_values)
+            log_id = db.insert_initial_transform_log(log_values)
 
             data = open_file(file)
             try:
@@ -66,8 +66,7 @@ def process_weather_file(file, country_code, batch_date, countries, db):
             move_file(file, p_dir_name, file_name)
 
             row_count = get_json_row_count(p_dir_name, file_name)
-            update_values = (batch_date, int(country_id), p_dir_name,
-                             file_name, row_count, status)
+            update_values = (p_dir_name, file_name, row_count, status, log_id)
             db.update_transform_log(update_values)
 
         except Exception:
@@ -107,7 +106,7 @@ def process_covid_file(file, country_code, batch_date, countries, db):
 
         try:
             log_values = (batch_date, int(country_id), "processing")
-            db.insert_initial_transform_log(log_values)
+            log_id = db.insert_initial_transform_log(log_values)
 
             data = open_file(file)
             try:
@@ -128,8 +127,7 @@ def process_covid_file(file, country_code, batch_date, countries, db):
             move_file(file, p_dir_name, file_name)
 
             row_count = get_json_row_count(p_dir_name, file_name)
-            update_values = (batch_date, int(country_id), p_dir_name,
-                             file_name, row_count, status)
+            update_values = (p_dir_name, file_name, row_count, status, log_id)
             db.update_transform_log(update_values)
 
         except Exception:

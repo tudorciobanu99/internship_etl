@@ -22,46 +22,24 @@ class DataExtractor(DatabaseConnector):
     def insert_initial_api_import_log(self, values:tuple):
         """
         Inserts the initial incomplete log in the extract.api_import_log table.
+        Sets the start_time to the current time by default.
 
         Args:
-            values (tuple): A 3-element tuple containing:
+            values (tuple): A 2-element tuple containing:
                 country_id (int): The country ID.
                 api_id (int): The API ID.
-                start_time (str): Timestamp corresponding to the time
-                    the API request was sent.
+
+        Returns:
+            log_id (int): The ID of the incomplete log record.
         """
 
         query = """
             INSERT INTO extract.api_import_log (country_id, api_id, start_time)
-            VALUES (%s, %s, %s);
+            VALUES (%s, %s, NOW())
+            RETURNING id;
         """
-        self.execute_query(query, values)
-
-    def find_api_import_log(self, values:tuple):
-        """
-        Attempts to find an initial incomplete log in the extract.api_import_log table.
-
-        Args:
-            values (tuple): A 3-element tuple containing:
-                country_id (int): The country ID.
-                api_id (int): The API ID.
-                start_time (str): Timestamp corresponding to the time
-                    the API request was sent.
-
-        Returns:
-            log_id (int): The ID of the log, if successful.
-        """
-
-        query = """
-            SELECT id
-            FROM extract.api_import_log
-            WHERE country_id = %s
-            AND api_id = %s AND start_time = %s;
-        """
-        row = self.fetch_rows(query, values)
-        if row:
-            log_id = row[0]
-            return log_id
+        log_id = self.execute_query_and_return_id(query, values)
+        return log_id
 
     def update_api_import_log(self, values:tuple):
         """
@@ -70,8 +48,6 @@ class DataExtractor(DatabaseConnector):
 
         Args:
             values (tuple): A 6-element tuple containing:
-                country_id (int): The country ID.
-                api_id (int): The API ID.
                 start_time (str): Timestamp corresponding to
                     the time the API request was sent.
                 end_time (str): Timestamp corresponding to
@@ -79,19 +55,17 @@ class DataExtractor(DatabaseConnector):
                 code_responde (str): The code response for the
                     given request.
                 error_message (str): The error message if applicable.
+                log_id (int): The ID of the initial incomplete log record.
         """
 
-        log_values = values[:3]
-        log_id = self.find_api_import_log(log_values)
-
+        log_id = values[-1]
         if log_id:
             update_query = """
                 UPDATE extract.api_import_log
-                SET end_time = %s, code_response = %s, error_message = %s
+                SET start_time = %s, end_time = %s,
+                code_response = %s, error_message = %s
                 WHERE id = %s;
             """
-            update_values = values[3:6]
-            values = update_values + (log_id,)
             self.execute_query(update_query, values)
 
     def find_created_date(self, import_dir_name, import_file_name):
@@ -111,6 +85,7 @@ class DataExtractor(DatabaseConnector):
             WHERE import_directory_name = %s
             AND import_file_name = %s
             AND file_created_date IS NOT NULL
+            ORDER BY file_created_date ASC
             LIMIT 1;
         """
         values = (import_dir_name, import_file_name)
@@ -135,36 +110,11 @@ class DataExtractor(DatabaseConnector):
         query = """
             INSERT INTO extract.import_log
             (batch_date, country_id, import_directory_name, import_file_name)
-            VALUES (%s, %s, %s, %s);
+            VALUES (%s, %s, %s, %s)
+            RETURNING id;
         """
-        self.execute_query(query, values)
-
-    def find_import_log(self, values:tuple):
-        """
-        Attempts to find an initial incomplete log in the extract.import_log table.
-
-        Args:
-            values (tuple): A 4-element tuple containing:
-                batch_date (str): The batch date.
-                country_id (int): The country ID.
-                import_dir_name (str): The directory name of the imported file.
-                import_file_name (str): The name of the imported file.
-
-        Returns:
-            log_id (int): The ID of the log, if successful.
-        """
-        query = """
-            SELECT id
-            FROM extract.import_log
-            WHERE batch_date = %s AND country_id = %s
-            AND import_directory_name = %s
-            AND import_file_name = %s
-            AND file_last_modified_date IS NULL;
-        """
-        row = self.fetch_rows(query, values)
-        if row:
-            log_id = row[0]
-            return log_id
+        log_id = self.execute_query_and_return_id(query, values)
+        return log_id
 
     def update_import_log(self, values:tuple):
         """
@@ -172,27 +122,24 @@ class DataExtractor(DatabaseConnector):
         If successful, it updates the row with additional information.
 
         Args:
-            values (tuple): A 7-element tuple containing:
-                batch_date (str): The batch date.
-                country_id (int): The country ID.
+            values (tuple): A 6-element tuple containing:
                 import_dir_name (str): The directory name of the imported file.
                 import_file_name (str): The name of the imported file.
                 file_created_date (str): The creation date of the file.
                 file_last_modified_date (str): The latest date the file was modified.
                 row_count (int): The number of rows contained in the file.
+                log_id (int): The ID of the initial incomplete log record.
         """
 
-        log_values = values[:4]
-        log_id = self.find_import_log(log_values)
+        log_id = values[-1]
         if log_id:
-            existing_created_date = self.find_created_date(values[2], values[3])
+            existing_created_date = self.find_created_date(values[0], values[1])
             if existing_created_date:
-                values[4] = existing_created_date
+                values = values[:2] + (existing_created_date,) + values[3:]
 
             update_query = """
                 UPDATE extract.import_log
                 SET file_created_date = %s, file_last_modified_date = %s, row_count = %s
                 WHERE id = %s;
             """
-            update_values = values[4:] + (log_id,)
-            self.execute_query(update_query, update_values)
+            self.execute_query(update_query, values[2:])

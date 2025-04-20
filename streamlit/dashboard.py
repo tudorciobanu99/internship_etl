@@ -128,7 +128,7 @@ def country_selector(db, key):
     """
 
     query = """
-        SELECT country_name FROM load.country
+        SELECT country_name FROM load.dim_country
     """
     data = db.fetch_rows(query)
     df = pd.DataFrame(data, columns=["country"])
@@ -262,16 +262,16 @@ def covid_and_weather(db):
 if __name__ == '__main__':
     # Load the PostgreSQL database connection parameters from a .env file,
     # located in the root directory of the project.
-    load_dotenv('database_password.env')
+    load_dotenv('database.env')
 
     # Constructing a db_config dictionary from the extracted parameters from
     # the .env file.
     db_config = {
-        "dbname": "etl",
-        "user": "postgres",
-        "host": "localhost",
-        "password": os.environ.get("db_password"),
-        "port": 5432,
+        "dbname": os.environ.get("DB_NAME"),
+        "user": os.environ.get("DB_USER"),
+        "host": os.environ.get("HOST"),
+        "password": os.environ.get("PASSWORD"),
+        "port": int(os.environ.get("PORT")),
     }
 
     # Connection to the database.

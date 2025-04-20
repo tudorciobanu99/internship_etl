@@ -2,46 +2,48 @@ from common.database_connector import DatabaseConnector
 class DataLoader(DatabaseConnector):
     def merge_dim_country(self):
         """
-        Merges (aka. UPSERTs) the country details from the staging tables in the
-        transform schema (weather_data_import, covid_data_import) with the load.dim_country
-        dimension table. A MD5 hash value created from the concatenation of all values
-        of a given record is used to check whether a record in the load.dim_country table
-        must be updated or not.
+        Merges (UPSERTs) country details from extract.country into load.dim_country
+        based on the countries actually used in the transform tables. A MD5 hash value
+        created from the concatenation of all values of a given record is used to
+        check whether a record in the load.dim_country table must be updated or not.
         """
 
         query = """
             MERGE INTO load.dim_country AS target
             USING (
                 SELECT DISTINCT
-                    country_id,
-                    country_code,
-                    country_name,
-                    latitude,
-                    longitude,
+                    ec.id,
+                    ec.code,
+                    ec.name,
+                    ec.latitude,
+                    ec.longitude,
                     md5(
-                        country_id || '|' ||
-                        country_code || '|' ||
-                        country_name || '|' ||
-                        latitude || '|' ||
-                        longitude
+                        ec.id || '|' ||
+                        ec.code || '|' ||
+                        ec.name || '|' ||
+                        ec.latitude || '|' ||
+                        ec.longitude
                     ) AS hash_value
-                FROM (
-                    SELECT country_id, country_code, country_name, latitude, longitude FROM transform.covid_data_import
+                FROM extract.country ec
+                INNER JOIN (
+                    SELECT country_id FROM transform.covid_data_import
                     UNION
-                    SELECT country_id, country_code, country_name, latitude, longitude FROM transform.weather_data_import
-                ) AS combined
+                    SELECT country_id FROM transform.weather_data_import
+                ) AS used_ids
+                ON ec.id = used_ids.country_id
             ) AS source
-            ON target.country_id = source.country_id
+            ON target.country_id = source.id
             WHEN MATCHED AND target.hash_value != source.hash_value THEN
                 UPDATE SET
-                    country_code = source.country_code,
-                    country_name = source.country_name,
+                    country_code = source.code,
+                    country_name = source.name,
                     latitude = source.latitude,
                     longitude = source.longitude,
                     hash_value = source.hash_value
             WHEN NOT MATCHED THEN
                 INSERT (country_id, country_code, country_name, latitude, longitude, hash_value)
-                VALUES (source.country_id, source.country_code, source.country_name, source.latitude, source.longitude, source.hash_value);
+                VALUES (source.id, source.code, source.name,
+                  source.latitude, source.longitude, source.hash_value);
         """
         self.execute_query(query)
 
@@ -151,7 +153,7 @@ class DataLoader(DatabaseConnector):
                         t.recovered
                     ) AS hash_value
                 FROM transform.covid_data_import t
-                JOIN load.dim_country c ON t.country_code = c.country_code
+                JOIN load.dim_country c ON t.country_id = c.country_id
                 JOIN load.dim_date d ON t.date = d.date
             ) AS source
             ON target.country_id = source.country_id AND target.date_id = source.date_id
@@ -201,7 +203,7 @@ class DataLoader(DatabaseConnector):
                         t.wind_speed
                     ) AS hash_value
                 FROM transform.weather_data_import t
-                JOIN load.dim_country c ON t.country_code = c.country_code
+                JOIN load.dim_country c ON t.country_id = c.country_id
                 JOIN load.dim_date d ON t.date = d.date
             ) AS source
             ON target.country_id = source.country_id AND target.date_id = source.date_id
