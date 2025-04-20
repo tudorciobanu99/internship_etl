@@ -160,10 +160,14 @@ def t_routine(countries, db: DataTransformer):
         country_code, batch_date = get_file_details(file)
         if all([country_code, batch_date]):
             process_weather_file(file, country_code, batch_date, countries, db)
+        else:
+            move_file(file, "data/error/weather_data/", file.split("/")[-1])
 
     for file in files_covid:
         country_code, batch_date = get_file_details(file)
         if all([country_code, batch_date]):
             process_covid_file(file, country_code, batch_date, countries, db)
+        else:
+            move_file(file, "data/error/covid_data/", file.split("/")[-1])
 
     db.close_connection()
