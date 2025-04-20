@@ -59,14 +59,14 @@ if __name__ == "__main__":
     weather_api_info = api_info[api_info["api_name"] == "Weather API"]
     weather_api = WeatherAPI(
         api_id=weather_api_info["id"].values[0],
-        base_url=weather_api_info["api_base_url"].values[0],
+        base_url=weather_api_info["api_base_url"].values[0]
     )
 
     # Initialize the respective COVID-19 API object.
     covid_api_info = api_info[api_info["api_name"] == "COVID API"]
     covid_api = CovidAPI(
         api_id=covid_api_info["id"].values[0],
-        base_url=covid_api_info["api_base_url"].values[0],
+        base_url=covid_api_info["api_base_url"].values[0]
     )
 
     # Fetch the countries that are going to be used for data extraction.
