@@ -301,6 +301,7 @@ def transformation_rates_by_day_type(db):
             SUM(CASE WHEN status = 'processed' THEN 1 ELSE 0 END) AS successful_transformations,
             SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) AS failed_transformations
         FROM transform.transform_log
+        WHERE batch_date IS NOT NULL
         GROUP BY day_type
         ORDER BY day_type;
     """
