@@ -180,4 +180,3 @@ For each modular step, there is an accompanying flow chart, that lists the steps
 ![FC](docs/load_fc.png)
 
 ## ▶️ Running the ETL
-
