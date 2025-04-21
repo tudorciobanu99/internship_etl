@@ -168,48 +168,5 @@ The following Entity Relationship Digrams (ERDs) provide a high-level overview o
 - The **fact_weather_data** and **fact_covid_data** tables are both fact tables and each reference to the dimension tables via foreign keys. The additionally contain information about the date the records were created and updated. It is important to note that **dim_weather_code** is only referenced in the **fact_weather_data**.
 
  ## 🔄 ETL Overview
-```mermaid
-flowchart TD
-    A[User Table] --> B[Post Table]
-    A[User Table] --> C[Order Table]
-    B --> D[Order Details]
-    C --> D[Order Details]
-
-    A -->|id| B
-    A -->|id| C
-    B -->|order_id| D
-    C -->|order_id| D
-
-    subgraph A [User Table]
-        direction TB
-        A1[+ id: int]
-        A2[+ name: string]
-        A3[+ email: string]
-        A4[+ date_created: date]
-    end
-
-    subgraph B [Post Table]
-        direction TB
-        B1[+ id: int]
-        B2[+ title: string]
-        B3[+ content: text]
-        B4[+ date_created: date]
-    end
-
-    subgraph C [Order Table]
-        direction TB
-        C1[+ order_id: int]
-        C2[+ user_id: int]
-        C3[+ order_date: date]
-    end
-
-    subgraph D [Order Details]
-        direction TB
-        D1[+ order_detail_id: int]
-        D2[+ order_id: int]
-        D3[+ product: string]
-        D4[+ quantity: int]
-    end
-```
-
+ ![FC](docs/extract_fc.png)
 
