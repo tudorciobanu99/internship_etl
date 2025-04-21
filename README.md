@@ -65,7 +65,7 @@ Whilst the project is built primarily on the Python Standard Library, several ad
 - [Streamlit](https://streamlit.io/) - Transforms Python scripts into interactive web apps to build data dashboards.
 - [Plotly](https://plotly.com/python/plotly-express/) - Graphing lirary for interactive charts.
 
-## API Details
+## 🌐 API Details
 This ETL pipeline extracts data from two public APIs:
 
 ### [COVID-19 Statistics API](https://covid-api.com/)
@@ -107,8 +107,8 @@ It is based on the COVID-19 Data Repository by the Center for Systems Science an
 ### [Weather API](https://open-meteo.com/en/docs/historical-forecast-api)
 This API provides access to archived high-resolution weather model data from the Weather Forecast API. The data is continuously archived and updated daily. In the context of the project, the daily weather is extracted for a given date in the past (e.g. 2022).
 - **Endpoint base URL**: https://historical-forecast-api.open-meteo.com/v1/forecast
-- For the daily data for a given date in the past, it requires the coordinates of the desired location (**latitude** and **longitude**), the **date** and **timezone**. By default, it expects the user to define the weather related quantities that are to be extracted. In the context of the project, all quantities are to be extracted.
-- For successful requests, the response has the following form:
+- For the daily data for a given date in the past, it requires the coordinates of the desired location (**latitude** and **longitude**), the **start date** and **end date**. By default, it expects the user to define the weather related quantities that are to be extracted (e.g. mean temperature, etc). In the context of the project, all quantities are to be extracted.
+- For successful requests, a sample response has the following form:
 ```json
 {
     "latitude": 52.52,
@@ -143,3 +143,27 @@ This API provides access to archived high-resolution weather model data from the
     "reason": "Cannot initialize WeatherVariable from invalid String value tempeture_2m for key daily"
 }
 ```
+
+## 🗃️ Database
+The following Entity Relationship Digrams (ERDs) provide a high-level overview of the database structure used in this project. It illustrates the relationships between logs, unprocessed and processed data tables that support the ETL pipeline. There are three schemas, each connected to the corresponding process in the ETL pipeline.
+
+### Extract Schema
+![ERD](docs/extract.png)
+- The **country** table stores the code, latitude and longitude for each country. The records are used as parameters for API data extraction.
+- The **api_info** table stores the name and base URL of the two APIs.
+- The **api_import_log** table tracks each API call for each country and stores the API extraction time and whether the call was successful.
+- The **import_log** table tracks each saved file with the raw data extracted from the API. Each file is linked to a particular country via the country's id.
+
+### Transform Schema
+![ERD](docs/transform.png)
+- The **transform_log** table tracks each transformation attempt for a raw file and documents whether the attempt was successful or not.
+- The **transform_covid_data_import** and **transform_weather_data_import** tables store the processed data taken from the newly successfully processed files. They link to the **extract.country** table to provide external validation that the processed data belongs a country present in the extract schema.
+
+### Load Schema
+![ERD](docs/load.png)
+- The load schema was designed as a STAR schema, which splits tables into dimension and fact tables. Each table contains a hash_value column which is used in the load process of the ETL to determine whether the tables need to be updated.
+- The **dim_country** is a dimension table and follows a similar structure to the **extract.country** table.
+- The **dim_date** is a dimension table and has several descriptive column that can be convenient to use in data visualization.
+- The **dim_weather_code** is a dimension table that matches a weather code to a predifined description.
+- The **fact_weather_data** and **fact_covid_data** tables are both fact tables and each reference to the dimension tables via foreign keys. The additionally contain information about the date the records were created and updated. It is important to note that **dim_weather_code** is only referenced in the **fact_weather_data**.
+
