@@ -180,4 +180,58 @@ For each modular step, there is an accompanying flow chart, that lists the steps
 ![FC](docs/load_fc.png)
 
 ## ▶️ Running the ETL
-
+In order to run the full ETL pipeline locally, one can follow the steps below:
+### 1. Clone the Repository
+```shell
+git clone https://github.com/tudorciobanu99/internship_etl.git
+cd internship_etl
+```
+### 2. Set up a Virtual Environment and Install Dependencies
+```shell
+python -m venv myenv
+source myenv/bin/activate
+pip install -r requirements.txt
+```
+### 3. Set PYTHONPATH for the session
+```shell
+export PYTHONPATH=path\to\this\project
+```
+### 4. Create the Database
+Before applying the schemas, ensure that you have PostgreSQL working (including command line tools) and that you have created a database. If in working directory of this project, you can simply execute:
+```shell
+psql -U your_username -d your_database_name -f database/extract_schema.sql
+psql -U your_username -d your_database_name -f database/transform_schema.sql
+psql -U your_username -d your_database_name -f database/load_schema.sql
+```
+Otherwise, one can manually run the scripts in the SQL query tool.
+### 5. Connecting to the Database in the ETL entrypoint
+One must create a database.env file, specifying the following parameters:
+```env
+DB_NAME = your_database_name
+DB_USER = your_user_name
+HOST = your_host
+PASSWORD = your_passowd
+PORT = your_port
+```
+### 6. Verify the setup
+Check that the virtual environment is up and running, including the PYTHONPATH. Since the extract_schema.sql script contains the sample records for the APIs and 3 countries, one can check the status of the database, by executing:
+```sql
+SELECT * FROM extract.country;
+SELECT * FROM extract.api_info;
+```
+### 7. Ready to run the ETL
+The entrypoint of the ETL is the etl.py file. If the user wants to add some new countries to the database, one can simply add the line after initializing the required database objects for the ETL:
+```python
+db = DataExtractor(**dbconfig)
+values = (ISO_code, name, latitude, longitude) # replace with actual values
+db.add_country(values)
+```
+By default, running
+```shell
+python etl.py
+```
+would execute the pipeline for today's date but would fetch the API data for the equivalent date in 2022. One can simply change
+```python
+date = your_preffered_date # a string in the YYYY-MM-DD format
+```
+The logs in **extract.api_import_log**, **extract.import_log** and **transform.transform_log** can be used to check the status of the ETL.
