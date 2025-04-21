@@ -48,8 +48,8 @@ The project was completed as part of the 2025 Data Engineering Internship at AMD
 │   ├── 📄 data_transformer.py - Inherits the DatabaseConnector class and handles additional logic
 │   │                            for the interaction with data in the transform schema
 │   └── 📄 transform.py - Handles the transform routine of the ETL
-├── 📁 weather_description/ -
-│   └── 🧾 wmo_code_4677.csv
+├── 📁 weather_description/
+│   └── 🧾 wmo_code_4677.csv - Provides the description for WMO 4677 codes
 ├── 🔒 .gitignore
 ├── 🗒️ README.md - Project documentation
 ├── 📄 etl.py - Entrypoint to run the full pipeline
