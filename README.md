@@ -32,7 +32,8 @@ The project was completed as part of the 2025 Data Engineering Internship at AMD
 │   └── 🗃️ load_schema.sql - Creates the load schema and related tables
 ├── 📁 extract/
 │   ├── 📄 covid_api.py - API wrapper class that handles the extraction of COVID-19 data
-│   ├── 📄 data_extractor.py - Inherits the DatabaseConnector class and handles additional logic for handling data in the extract schema
+│   ├── 📄 data_extractor.py - Inherits the DatabaseConnector class and handles additional logic
+│   │                          for the interaction with data in the extract schema
 │   ├── 📄 extract.py - Handles the extract routine of the ETL
 │   └── 📄 weather_api.py - API wrapper class that handles the extraction of weather data
 ├── 📁 load/
