@@ -4,9 +4,9 @@ The project was completed as part of the 2025 Data Engineering Internship at AMD
 
 ## 📖 Overview
 1) 📁 [Project structure](#-project-structure)
-2) ⚙️ [Tools](#-tools)
+2) ⚙️ [Tools](#tools)
 3) 🌐 [API Details](#-api-details)
-4) 🗃️ [Database](#-database)
+4) 🗃️ [Database](#database)
 5) 🔄 [ETL Overview](#-etl-overview)
 6) ▶️ [Running the ETL](#-running-the-etl)
 
