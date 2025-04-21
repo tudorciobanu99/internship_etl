@@ -8,7 +8,7 @@ The project was completed as part of the 2025 Data Engineering Internship at AMD
 3) 🌐 [API Details](#-api-details)
 4) 🗃️ [Database](#database)
 5) 🔄 [ETL Overview](#-etl-overview)
-6) ▶️ [Running the ETL](#-running-the-etl)
+6) ▶️ [Running the ETL](#running-the-etl)
 
 ## 📁 Project Structure
 <pre>
@@ -179,7 +179,8 @@ For each modular step, there is an accompanying flow chart, that lists the steps
 ### Load
 ![FC](docs/load_fc.png)
 
-## ▶️ Running the ETL
+<h2 id="running-the-etl">▶️ Running the ETL</h2>
+
 In order to run the full ETL pipeline locally, one can follow the steps below:
 ### 1. Clone the Repository
 ```shell
