@@ -235,3 +235,10 @@ would execute the pipeline for today's date but would fetch the API data for the
 date = your_preffered_date # a string in the YYYY-MM-DD format
 ```
 The logs in **extract.api_import_log**, **extract.import_log** and **transform.transform_log** can be used to check the status of the ETL.
+
+### Optional
+One can visualize some predefined KPIs on the ETL data by running:
+```shell
+streamlit run streamlit/dashboard.py
+```
+This will launch an interactive web application with some charts and summary statistics. There is no need for additional setup if the database.env is in the working directory.
