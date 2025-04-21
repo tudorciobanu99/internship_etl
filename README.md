@@ -58,6 +58,6 @@ The project was completed as part of the 2025 Data Engineering Internship at AMD
 
 ## ⚙️ Tools
 Whilst the project is built primarily on the Python Standard Library, several additional tools were used to support development, data processing, and visualization. Below is a list of the key tools used.
-- <img src="https://www.postgresql.org/media/img/about/press/elephant.png" width="11" height="11"> [PostgreSQL](https://www.postgresql.org/)
+- <img src="https://www.postgresql.org/media/img/about/press/elephant.png" width="15" height="15"> [PostgreSQL](https://www.postgresql.org/)
 
 
