@@ -205,7 +205,7 @@ psql -U your_username -d your_database_name -f database/load_schema.sql
 ```
 Otherwise, one can manually run the scripts in the SQL query tool.
 ### 5. Connecting to the Database in the ETL entrypoint
-One must create a database.env file, specifying the following parameters:
+One must create a database.env file in the working directory, specifying the following parameters:
 ```env
 DB_NAME = your_database_name
 DB_USER = your_user_name
