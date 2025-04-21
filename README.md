@@ -140,7 +140,6 @@ This API provides access to archived high-resolution weather model data from the
 ```json
 {
     "error": true,
-    "reason": "Cannot initialize WeatherVariable from invalid String value
-	    tempeture_2m for key daily"
+    "reason": "Cannot initialize WeatherVariable from invalid String value tempeture_2m for key daily"
 }
 ```
