@@ -58,6 +58,11 @@ The project was completed as part of the 2025 Data Engineering Internship at AMD
 
 ## ⚙️ Tools
 Whilst the project is built primarily on the Python Standard Library, several additional tools were used to support development, data processing, and visualization. Below is a list of the key tools used.
-- <img src="https://www.postgresql.org/media/img/about/press/elephant.png" width="15" height="15"> [PostgreSQL](https://www.postgresql.org/)
+- [PostgreSQL](https://www.postgresql.org/) - The relational database management system of choice.
+- [psycopg2](https://www.psycopg.org/) - The most popular PostgreSQL adapter for Python.
+- [requests](https://requests.readthedocs.io/) - The HTTP library for Python.
+- [pandas](https://pandas.pydata.org/) - Data analysis and manipulation tool.
+- [Streamlit](https://streamlit.io/) - Transforms Python scripts into interactive web apps to build data dashboards.
+- [Plotly](https://plotly.com/python/plotly-express/) - Graphing lirary for interactive charts.
 
 
