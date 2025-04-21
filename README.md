@@ -222,9 +222,8 @@ SELECT * FROM extract.api_info;
 ### 7. Ready to run the ETL
 The entrypoint of the ETL is the etl.py file. If the user wants to add some new countries to the database, one can simply add the line after initializing the required database objects for the ETL:
 ```python
-db = DataExtractor(**dbconfig)
 values = (ISO_code, name, latitude, longitude) # replace with actual values
-db.add_country(values)
+e_db.add_country(values)
 ```
 By default, running
 ```shell
