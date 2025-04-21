@@ -121,8 +121,7 @@ This API provides access to archived high-resolution weather model data from the
     "daily_units": {
         "time": "iso8601",
         "weather_code": "wmo code",
-        "temperature_2m_mean": "\u00b0C",
-        ...
+        "temperature_2m_mean": "\u00b0C"
     },
     "daily": {
         "time": [
@@ -133,9 +132,8 @@ This API provides access to archived high-resolution weather model data from the
         ],
         "temperature_2m_mean": [
             13
-        ],
-        ...
-    },
+        ]
+    }
 }
 ```
 - In case an error occurs, for example a URL parameter is not correctly specified, a JSON error object is returned with a HTTP 400 status code:
