@@ -56,7 +56,7 @@ The project was completed as part of the 2025 Data Engineering Internship at AMD
 └── 🗒️ requirements.txt - Python dependencies
 </pre>
 
-## ⚙️ Tools
+<h2 id="tools">⚙️ Tools</h2>
 Whilst the project is built primarily on the Python Standard Library, several additional tools were used to support development, data processing, and visualization. Below is a list of the key tools used.
 - [PostgreSQL](https://www.postgresql.org/) - The relational database management system of choice.
 - [psycopg2](https://www.psycopg.org/) - The most popular PostgreSQL adapter for Python.
@@ -144,7 +144,7 @@ This API provides access to archived high-resolution weather model data from the
 }
 ```
 
-## 🗃️ Database
+<h2 id="database">🗃️ Database</h2>
 The following Entity Relationship Digrams (ERDs) provide a high-level overview of the database structure used in this project. It illustrates the relationships between logs, unprocessed and processed data tables that support the ETL pipeline. There are three schemas, each connected to the corresponding process in the ETL pipeline.
 
 ### Extract Schema
