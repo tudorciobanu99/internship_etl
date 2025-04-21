@@ -167,3 +167,34 @@ The following Entity Relationship Digrams (ERDs) provide a high-level overview o
 - The **dim_weather_code** is a dimension table that matches a weather code to a predifined description.
 - The **fact_weather_data** and **fact_covid_data** tables are both fact tables and each reference to the dimension tables via foreign keys. The additionally contain information about the date the records were created and updated. It is important to note that **dim_weather_code** is only referenced in the **fact_weather_data**.
 
+ ## 🔄 ETL Overview
+ ```mermaid
+ classDiagram
+    class User {
+        +int id
+        +string name
+        +string email
+        +date date_created
+    }
+
+    class Post {
+        +int id
+        +string title
+        +text content
+        +date date_created
+    }
+
+    User "1" --> "*" Post : has
+
+flowchart TD
+    A[User Table] --> B[Post Table]
+    A[User Table] --> C[Order Table]
+    B --> D[Order Details]
+    C --> D[Order Details]
+
+    A -->|id| B
+    A -->|id| C
+    B -->|order_id| D
+    C -->|order_id| D
+ ```
+
