@@ -169,23 +169,6 @@ The following Entity Relationship Digrams (ERDs) provide a high-level overview o
 
  ## 🔄 ETL Overview
  ```mermaid
- classDiagram
-    class User {
-        +int id
-        +string name
-        +string email
-        +date date_created
-    }
-
-    class Post {
-        +int id
-        +string title
-        +text content
-        +date date_created
-    }
-
-    User "1" --> "*" Post : has
-
 flowchart TD
     A[User Table] --> B[Post Table]
     A[User Table] --> C[Order Table]
