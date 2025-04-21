@@ -149,19 +149,19 @@ This API provides access to archived high-resolution weather model data from the
 The following Entity Relationship Digrams (ERDs) provide a high-level overview of the database structure used in this project. It illustrates the relationships between logs, unprocessed and processed data tables that support the ETL pipeline. There are three schemas, each connected to the corresponding process in the ETL pipeline.
 
 ### Extract Schema
-![ERD](docs/extract.pdf)
+![ERD](docs/extract.png)
 - The **country** table stores the code, latitude and longitude for each country. The records are used as parameters for API data extraction.
 - The **api_info** table stores the name and base URL of the two APIs.
 - The **api_import_log** table tracks each API call for each country and stores the API extraction time and whether the call was successful.
 - The **import_log** table tracks each saved file with the raw data extracted from the API. Each file is linked to a particular country via the country's id.
 
 ### Transform Schema
-![ERD](docs/transform.pdf)
+![ERD](docs/transform.png)
 - The **transform_log** table tracks each transformation attempt for a raw file and documents whether the attempt was successful or not.
 - The **transform_covid_data_import** and **transform_weather_data_import** tables store the processed data taken from the newly successfully processed files. They link to the **extract.country** table to provide external validation that the processed data belongs a country present in the extract schema.
 
 ### Load Schema
-![ERD](docs/load.pdf)
+![ERD](docs/load.png)
 - The load schema was designed as a STAR schema, which splits tables into dimension and fact tables. Each table contains a hash_value column which is used in the load process of the ETL to determine whether the tables need to be updated.
 - The **dim_country** is a dimension table and follows a similar structure to the **extract.country** table.
 - The **dim_date** is a dimension table and has several descriptive column that can be convenient to use in data visualization.
