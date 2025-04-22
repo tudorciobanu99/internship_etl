@@ -159,7 +159,7 @@ The following Entity Relationship Digrams (ERDs) provide a high-level overview o
 ### Transform Schema
 ![ERD](docs/transform.png)
 - The **transform_log** table tracks each transformation attempt for a raw file and documents whether the attempt was successful or not.
-- The **transform_covid_data_import** and **transform_weather_data_import** tables store the processed data taken from the newly successfully processed files. They link to the **extract.country** table to provide external validation that the processed data belongs a country present in the extract schema.
+- The **transform_covid_data_import** and **transform_weather_data_import** tables store the processed data taken from the newly successfully processed files. They link to the **extract.country** table to provide external validation that the processed data belongs to a country present in the extract schema.
 
 ### Load Schema
 ![ERD](docs/load.png)
@@ -167,7 +167,7 @@ The following Entity Relationship Digrams (ERDs) provide a high-level overview o
 - The **dim_country** is a dimension table and follows a similar structure to the **extract.country** table.
 - The **dim_date** is a dimension table and has several descriptive column that can be convenient to use in data visualization.
 - The **dim_weather_code** is a dimension table that matches a weather code to a predifined description.
-- The **fact_weather_data** and **fact_covid_data** tables are both fact tables and each reference to the dimension tables via foreign keys. The additionally contain information about the date the records were created and updated. It is important to note that **dim_weather_code** is only referenced in the **fact_weather_data**.
+- The **fact_weather_data** and **fact_covid_data** tables are both fact tables and each reference to the dimension tables via foreign keys. Additionally, both store information about the date the records were created and updated. It is important to note that **dim_weather_code** is only referenced in the **fact_weather_data** table.
 
  ## 🔄 ETL Overview
 For each modular step, there is an accompanying flow chart, that lists the steps in sequential order.
