@@ -225,7 +225,7 @@ def peak_of_new_cases(db):
     )
     fig.update_traces(
         texttemplate="%{text:,}",
-        textposition="outside",
+        textposition="auto",
         hovertemplate="<b>Country:</b> %{x}<br>" +
                       "<b>New Cases:</b> %{y:,}<br>" +
                       "<b>Peak Date:</b> %{customdata[0]}<extra></extra>",

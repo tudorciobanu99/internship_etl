@@ -241,4 +241,4 @@ One can visualize some predefined KPIs on the ETL data by running:
 ```shell
 streamlit run streamlit/dashboard.py
 ```
-This will launch an interactive web application with some charts and summary statistics. There is no need for additional setup if the database.env is in the working directory.
+This will launch an interactive web application with some charts and summary statistics. There is no need for additional setup if the database.env is in the working directory. This is the only part that might require exporting the PYTHONPATH, since Streamlit sets the working directory to streamlit/ instead of the project folder.
