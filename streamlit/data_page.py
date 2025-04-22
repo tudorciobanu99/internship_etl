@@ -2,10 +2,21 @@ import pandas as pd
 import plotly.express as px
 
 def covid_vs_weather(db, selected_country):
+    """
+    Plots a density heatmap given mean temperatures, relative humidity and COVID-19 cases.
+
+    Args:
+        db (DatabaseConnector object)
+        selected_country (str): The name of the selected country.
+
+    Returns:
+        fig (plotly.graph_objects.Figure)
+    """
+
     query = """
         SELECT
             d.date,
-            c.country_code,
+            c.country_name,
             w.mean_temperature,
             w.relative_humidity,
             f.confirmed_cases,
@@ -16,11 +27,11 @@ def covid_vs_weather(db, selected_country):
         JOIN load.dim_date d ON f.date_id = d.date_id
         WHERE w.mean_temperature IS NOT NULL
         AND f.confirmed_cases IS NOT NULL
-        ORDER BY d.date, c.country_code;
+        ORDER BY d.date, c.country_name;
     """
 
     data = db.fetch_rows(query)
-    df = pd.DataFrame(data, columns=["date", "country_code", "mean_temperature",
+    df = pd.DataFrame(data, columns=["date", "country_name", "mean_temperature",
                                      "relative_humidity", "confirmed_cases", "deaths"])
 
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
@@ -28,7 +39,7 @@ def covid_vs_weather(db, selected_country):
     df["confirmed_cases"] = df["confirmed_cases"].apply(lambda x: max(x, 0))
 
     if selected_country != "All countries":
-        df = df[df["country_code"] == selected_country]
+        df = df[df["country_name"] == selected_country]
     else:
         df = df.groupby(["mean_temperature", "relative_humidity"]).agg(
             confirmed_cases=("confirmed_cases", "sum"),
@@ -69,6 +80,22 @@ def covid_vs_weather(db, selected_country):
     return fig
 
 def covid_and_weather_summary_stats(db, selected_country):
+    """
+    Prepares summary statistics about COVID-19 and weather data.
+    Information includes:
+        first and last collection date, average temperature,
+        average humidity, total number of confirmed cases,
+        total number of deaths, total numer of recoveries,
+        the most frequent weather code and description.
+
+    Args:
+        db (DatabaseConnector object)
+        selected_country (str): The name of the selected country.
+
+    Returns:
+        df (DataFrame): A DataFrame containing the above statistics.
+    """
+
     query = """
         WITH sum_stats AS (
             SELECT
@@ -83,7 +110,7 @@ def covid_and_weather_summary_stats(db, selected_country):
             JOIN load.dim_country c ON f.country_id = c.country_id
             JOIN load.fact_weather_data w ON f.country_id = w.country_id AND f.date_id = w.date_id
             JOIN load.dim_date d ON f.date_id = d.date_id
-            WHERE c.country_code = %s
+            WHERE c.country_name = %s
         ),
         most_frequent_weather AS (
             SELECT
@@ -94,7 +121,7 @@ def covid_and_weather_summary_stats(db, selected_country):
             FROM load.fact_weather_data w
             JOIN load.dim_weather_code wc ON w.weather_code = wc.weather_code
             JOIN load.dim_country c ON w.country_id = c.country_id
-            WHERE c.country_code = %s
+            WHERE c.country_name = %s
             GROUP BY w.weather_code, wc.description
         )
         SELECT
@@ -120,14 +147,25 @@ def covid_and_weather_summary_stats(db, selected_country):
     return df
 
 def peak_of_new_cases(db):
+    """
+    Calculates and displays the Worst Single Day Spike of New COVID-19 Cases
+    for each available country.
+
+    Args:
+        db (DatabaseConnector)
+
+    Returns:
+        fig (plotly.graph_objects.Figure)
+    """
+
     query = """
         WITH ranked_peaks AS (
             SELECT
-                dc.country_code,
+                dc.country_name,
                 dd.date,
                 fcd.confirmed_cases,
                 LAG(fcd.confirmed_cases) OVER (
-                    PARTITION BY dc.country_code ORDER BY dd.date
+                    PARTITION BY dc.country_name ORDER BY dd.date
                 ) AS prev_day
             FROM load.fact_covid_data AS fcd
             JOIN load.dim_country AS dc ON fcd.country_id = dc.country_id
@@ -135,7 +173,7 @@ def peak_of_new_cases(db):
         ),
         daily_new_cases AS (
             SELECT
-                country_code,
+                country_name,
                 date,
                 confirmed_cases,
                 ABS(confirmed_cases) - ABS(prev_day) AS new_cases
@@ -143,18 +181,18 @@ def peak_of_new_cases(db):
         ),
         country_peaks AS (
             SELECT
-                country_code,
+                country_name,
                 date AS peak_date,
                 new_cases,
                 ROW_NUMBER() OVER (
-                    PARTITION BY country_code ORDER BY new_cases DESC NULLS LAST
+                    PARTITION BY country_name ORDER BY new_cases DESC NULLS LAST
                 ) AS row_num
             FROM daily_new_cases
             WHERE new_cases IS NOT NULL
         ),
         top_peaks AS (
             SELECT
-                country_code,
+                country_name,
                 peak_date,
                 new_cases
             FROM country_peaks
@@ -167,7 +205,7 @@ def peak_of_new_cases(db):
         ORDER BY peak_rank
     """
     data = db.fetch_rows(query)
-    df = pd.DataFrame(data, columns=["country_code", "peak_date", "new_cases", "peak_rank"])
+    df = pd.DataFrame(data, columns=["country_name", "peak_date", "new_cases", "peak_rank"])
     df["peak_date"] = pd.to_datetime(df["peak_date"], errors="coerce")
     df = df.dropna(subset=["peak_date"])
     df = df.sort_values(by="peak_rank")
@@ -176,18 +214,18 @@ def peak_of_new_cases(db):
 
     fig = px.bar(
         df,
-        x="country_code",
+        x="country_name",
         y="new_cases",
         color="peak_date",
         text="new_cases",
         title="Worst Single Day Spike of New COVID-19 Cases",
-        labels={"new_cases": "New Cases", "country_code": "Country", "peak_date": "Date"},
+        labels={"new_cases": "New Cases", "country_name": "Country", "peak_date": "Date"},
         color_discrete_sequence=px.colors.sequential.Reds[::-1],
-        hover_data={"new_cases": ":,", "peak_date": True, "country_code": True}
+        hover_data={"new_cases": ":,", "peak_date": True, "country_name": True}
     )
     fig.update_traces(
         texttemplate="%{text:,}",
-        textposition="outside",
+        textposition="auto",
         hovertemplate="<b>Country:</b> %{x}<br>" +
                       "<b>New Cases:</b> %{y:,}<br>" +
                       "<b>Peak Date:</b> %{customdata[0]}<extra></extra>",
@@ -201,10 +239,24 @@ def peak_of_new_cases(db):
     )
     return fig
 
-def covid_vs_date(db,selected_country, start_date, end_date):
+def covid_vs_date(db, selected_country, start_date, end_date):
+    """
+    Displays the COVID-19 related deaths for a given date range
+    and for a given country and whether it is on a weekend or not.
+
+    Args:
+        db (DatabaseConnector)
+        selected_country(str): The name of the selected country.
+        start_date (str): The start date of the date range.
+        end_date (str): The end date of the date range.
+
+    Returns:
+        fig (plotly.graph_objects.Figure)
+    """
+
     query = """
         SELECT
-            dc.country_code,
+            dc.country_name,
             dd.date,
             dd.is_weekend,
             fcd.deaths
@@ -215,13 +267,13 @@ def covid_vs_date(db,selected_country, start_date, end_date):
     """
     values = (start_date, end_date)
     data = db.fetch_rows(query, values)
-    df = pd.DataFrame(data, columns=["country_code", "date", "is_weekend", "deaths"])
+    df = pd.DataFrame(data, columns=["country_name", "date", "is_weekend", "deaths"])
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df = df.dropna(subset=["date"])
     df = df.sort_values(by="date")
 
     if selected_country != "All countries":
-        df = df[df["country_code"] == selected_country]
+        df = df[df["country_name"] == selected_country]
     else:
         df = df.groupby(["date", "is_weekend"]).agg(
             deaths=("deaths", "sum")

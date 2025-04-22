@@ -1,13 +1,12 @@
--- This script creates the schema and tables for the extract process
+-- This script creates the schema and tables for the extract process.
 CREATE SCHEMA extract;
 
 CREATE TABLE extract.country (
 	id SERIAL PRIMARY KEY,
     code VARCHAR(10) NOT NULL, -- (ISO code)
-    name VARCHAR(100) NOT NULL
+    name VARCHAR(100) NOT NULL,
     latitude DECIMAL(9,6) NOT NULL,
-    latitude DECIMAL(9,6) NOT NULL,
-    capital VARCHAR(50) NOT NULL
+    latitude DECIMAL(9,6) NOT NULL
 )
 
 CREATE TABLE extract.import_log (
@@ -40,14 +39,14 @@ CREATE TABLE extract.api_import_log (
     FOREIGN KEY (api_id) REFERENCES extract.api_info(id)
 )
 
--- Inserting the api information EXAMPLE
 INSERT INTO extract.api_info (api_name, api_base_url)
 VALUES ('Weather API', 'https://historical-forecast-api.open-meteo.com/v1/forecast'),
 	   ('COVID API', 'https://covid-api.com/api/reports/total');
 
-INSERT INTO extract.country (code, name, latitude, longitude, capital)
-VALUES ('USA', 'United States of America', 38.8951, -77.0364, 'Washington D.C.'),
-	   ('DEU', 'Germany', 52.5200, 13.4050, 'Berlin'),
-	   ('JPN', 'Japan', 35.6895, 139.6917, 'Tokyo');
+-- Sample countries for testing.
+INSERT INTO extract.country (code, name, latitude, longitude)
+VALUES ('USA', 'United States of America', 38.8951, -77.0364),
+	   ('DEU', 'Germany', 52.5200, 13.4050),
+	   ('JPN', 'Japan', 35.6895, 139.6917);
 
 

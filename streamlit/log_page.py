@@ -2,6 +2,19 @@ import pandas as pd
 import plotly.express as px
 
 def success_rate_choropleth_map(db, selected_api, selected_country):
+    """
+    Creates and displays a Choropleth map of success rates for a given
+    country and given API.
+
+    Args:
+        db (DatabaseConnector)
+        selected_api (str): The name of the selected API.
+        selected_country(str): The name of the selected country.
+
+    Returns:
+        fig (plotly.graph_objects.Figure)
+    """
+
     query = """
         SELECT
             a.api_name AS api,
@@ -85,6 +98,24 @@ def success_rate_choropleth_map(db, selected_api, selected_country):
     return fig
 
 def display_summary_statistics(db, selected_country):
+    """
+    Prepares summary statistics about API import logs and
+    creates and displays a pie chart of the code responses
+    for the API calls.
+
+    Information includes:
+        total calls, average extraction time in seconds,
+        number of successful and failed calls.
+
+    Args:
+        db (DatabaseConnector object)
+        selected_country (str): The name of the selected country.
+
+    Returns:
+        df (DataFrame): A DataFrame containing the above statistics.
+        fig (plotly.graph_objects.Figure)
+    """
+
     query = """
         SELECT
             COUNT(*) AS total_calls,
@@ -182,6 +213,19 @@ def rolling_average_rows(db, selected_country):
 
 
 def daily_api_time(db, start_date, end_date):
+    """
+    Calculated and displays the daily API time for all calls
+    for every single day in the given date range.
+
+    Args:
+        db (DatabaseConnector)
+        start_date (str): The start date of the date range.
+        end_date (str): The end date of the date range.
+
+    Returns:
+        fig (plotly.graph_objects.Figure)
+    """
+
     query = """
         SELECT
             DATE(start_time) AS api_date,
@@ -236,6 +280,17 @@ def daily_api_time(db, start_date, end_date):
     return fig
 
 def transformation_rates_by_day_type(db):
+    """
+    Creates and displays a bar chart of the transformation rates of the raw files
+    from the extract process of the ETL.
+
+    Args:
+        db (DatabaseConnector)
+
+    Returns:
+        fig (plotly.graph_objects.Figure)
+    """
+
     query = """
         SELECT
             CASE
@@ -246,6 +301,7 @@ def transformation_rates_by_day_type(db):
             SUM(CASE WHEN status = 'processed' THEN 1 ELSE 0 END) AS successful_transformations,
             SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) AS failed_transformations
         FROM transform.transform_log
+        WHERE batch_date IS NOT NULL
         GROUP BY day_type
         ORDER BY day_type;
     """
