@@ -1,6 +1,6 @@
 # AMDARIS 2025 Data Engineering Internship project
 
-The project was completed as part of the 2025 Data Engineering Internship at AMDARIS, under the supervision of Mentor Marius Purici. It implements an ETL (Extract, Transform, Load) pipeline designed to store and process historical COVID-19 and Weather data for a given country and a givn date in the past. It is organized into modular components and is intended to be maintainable and scalable.
+The project was completed as part of the 2025 Data Engineering Internship at AMDARIS, under the supervision of Mentor Marius Purici. It implements an ETL (Extract, Transform, Load) pipeline designed to store and process historical COVID-19 and Weather data for a given country and a given date in the past. It is organized into modular components and is intended to be maintainable and scalable.
 
 ## 📖 Overview
 1) 📁 [Project structure](#-project-structure)
@@ -194,7 +194,7 @@ python -m venv myenv
 source myenv/bin/activate
 pip install -r requirements.txt
 ```
-### 3. Set PYTHONPATH for the session
+### 3. Set PYTHONPATH for the session, if running into relative import issues
 ```shell
 export PYTHONPATH=path\to\this\project
 ```
@@ -216,25 +216,24 @@ PASSWORD = your_passowd
 PORT = your_port
 ```
 ### 6. Verify the setup
-Check that the virtual environment is up and running, including the PYTHONPATH. Since the extract_schema.sql script contains the sample records for the APIs and 3 countries, one can check the status of the database, by executing:
+Check that the virtual environment is up and running, including the PYTHONPATH, if applicable. Since the extract_schema.sql script contains the sample records for the APIs and 3 countries, one can check the status of the database, by executing:
 ```sql
 SELECT * FROM extract.country;
 SELECT * FROM extract.api_info;
 ```
 ### 7. Ready to run the ETL
-The entrypoint of the ETL is the etl.py file. If the user wants to add some new countries to the database, one can simply add the line after initializing the required database objects for the ETL:
-```python
-values = (ISO_code, name, latitude, longitude) # replace with actual values
-e_db.add_country(values)
-```
-By default, running
+In order to run the entire ETL routine, one can simply execute:
 ```shell
 python etl.py
 ```
-would execute the pipeline for today's date but would fetch the API data for the equivalent date in 2022. One can simply change
-```python
-date = your_preffered_date # a string in the YYYY-MM-DD format
+This will execute the routine and extract data from the API for the same date in 2022 as the date the script is executed. The user will be asked whether a new country is to be added to the extract routine. If no country is added, the extract will proceed with the already existing records. Otherwise, the user can simply follow the user friendly prompts to add one or several countries.
+
+Alternatively, one can specify the following arguments:
+```shell
+python etl.py --process your_choice --date your_date
 ```
+where your_choice can be a subset of the processes of the ETL or all, whilst your_date is the desired date. It is important to note that if the date does not follow the correct format, it is not going to be considered.
+
 The logs in **extract.api_import_log**, **extract.import_log** and **transform.transform_log** can be used to check the status of the ETL.
 
 ### Optional

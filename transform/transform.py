@@ -68,7 +68,6 @@ def process_weather_file(file, countries, db):
                 db.update_transform_log((p_dir_name, file_name, row_count, status, log_id))
 
             except Exception:
-                log_id = db.insert_initial_transform_log((batch_date, int(country_id), status))
                 move_file(file, p_dir_name, file_name)
                 db.update_transform_log((p_dir_name, file_name, 0, status, log_id))
         else:
@@ -137,7 +136,6 @@ def process_covid_file(file, countries, db):
                 db.update_transform_log((p_dir_name, file_name, row_count, status, log_id))
 
             except Exception:
-                log_id = db.insert_initial_transform_log((batch_date, int(country_id), status))
                 move_file(file, p_dir_name, file_name)
                 db.update_transform_log((p_dir_name, file_name, 0, status, log_id))
         else:
