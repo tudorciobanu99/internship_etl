@@ -45,7 +45,8 @@ class DataTransformer(DatabaseConnector):
                 WHERE id = %s;
             """
             self.execute_query(update_query, values)
-            self.logger.info(f"Incomplete transform log record with ID: {log_id} has been completed.")
+            self.logger.info(f"Incomplete transform log record with ID: {log_id} has been updated \
+                             with status: {values[3]}.")
 
     def insert_weather_data(self, values:tuple):
         """

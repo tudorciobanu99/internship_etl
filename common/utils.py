@@ -194,7 +194,7 @@ def get_weather_description(weather_code, csv_file_path="weather_description/wmo
             reader = csv.DictReader(file)
             for row in reader:
                 if row["Weather Code"] == weather_code:
-                    description = row["Description"]
+                    description = str(row["Description"])
                     return description
     except (FileNotFoundError, KeyError):
         return None

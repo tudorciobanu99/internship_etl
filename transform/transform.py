@@ -1,10 +1,12 @@
 from transform.data_transformer import DataTransformer
+from transform.validation import WeatherData, CovidData
 from common.utils import (
     open_file, move_file, list_all_files_from_directory,
     get_weather_description, check_expected_format
 )
+from pydantic import ValidationError
 
-def process_weather_file(file, countries, db):
+def process_weather_file(file, countries, db:DataTransformer):
     """
     Processes a raw file containg the extracted data from the Weather API.
     For each given file containg weather data, the process follows the scheme:
@@ -37,38 +39,30 @@ def process_weather_file(file, countries, db):
 
         if not filtered.empty:
             country_id = filtered["id"].values[0]
+            log_id = db.insert_initial_transform_log((batch_date, int(country_id), "ongoing"))
             try:
-                log_id = db.insert_initial_transform_log((batch_date, int(country_id), "ongoing"))
+                raw_data = open_file(file)
+                parsed_data = WeatherData(**raw_data)
+                daily = parsed_data.daily
+                weather_description = get_weather_description(daily.weather_code[0]) or "Unknown"
 
-                data = open_file(file)
-                try:
-                    date = data["daily"]["time"][0]
-                    weather_code = data["daily"]["weather_code"][0]
-                    mean_temperature = data["daily"]["temperature_2m_mean"][0]
-                    mean_surface_pressure = data["daily"]["surface_pressure_mean"][0]
-                    precipitation_sum = data["daily"]["precipitation_sum"][0]
-                    relative_humidity = data["daily"]["relative_humidity_2m_mean"][0]
-                    wind_speed = data["daily"]["wind_speed_10m_mean"][0]
-                    weather_description = get_weather_description(str(weather_code)) or "Unknown"
+                insert_values = (
+                    int(country_id), daily.time[0], daily.weather_code[0], weather_description,
+                    daily.temperature_2m_mean[0], daily.surface_pressure_mean[0],
+                    daily.precipitation_sum[0], daily.relative_humidity_2m_mean[0],
+                    daily.wind_speed_10m_mean[0]
+                )
+                db.insert_weather_data(insert_values)
 
-                    insert_values = (
-                        int(country_id), date, str(weather_code), str(weather_description),
-                        float(mean_temperature), float(mean_surface_pressure),
-                        float(precipitation_sum), float(relative_humidity), float(wind_speed)
-                    )
-                    db.insert_weather_data(insert_values)
+                status = "processed"
+                p_dir_name = "data/processed/weather_data/"
+            except (ValidationError, KeyError, TypeError) as e:
+                db.logger.warning(f"Transformation has failed for weather data belonging to \
+                                   {country_id}: {e}")
+                pass
 
-                    status = "processed"
-                    p_dir_name = "data/processed/weather_data/"
-                except KeyError:
-                    pass
-
-                move_file(file, p_dir_name, file_name)
-                db.update_transform_log((p_dir_name, file_name, 1, status, log_id))
-
-            except Exception:
-                move_file(file, p_dir_name, file_name)
-                db.update_transform_log((p_dir_name, file_name, 0, status, log_id))
+            move_file(file, p_dir_name, file_name)
+            db.update_transform_log((p_dir_name, file_name, 1, status, log_id))
         else:
             log_id = db.insert_initial_transform_log((batch_date, None, status))
             move_file(file, p_dir_name, file_name)
@@ -78,7 +72,7 @@ def process_weather_file(file, countries, db):
         move_file(file, p_dir_name, file_name)
         db.update_transform_log((p_dir_name, file_name, 0, status, log_id))
 
-def process_covid_file(file, countries, db):
+def process_covid_file(file, countries, db:DataTransformer):
     """
     Processes a raw file containg the extracted data from the COVID-19 API.
     For each given file containg COVID-19 data, the process follows the scheme:
@@ -111,31 +105,27 @@ def process_covid_file(file, countries, db):
 
         if not filtered.empty:
             country_id = filtered["id"].values[0]
+            log_id = db.insert_initial_transform_log((batch_date, int(country_id), "ongoing"))
+
             try:
-                log_id = db.insert_initial_transform_log((batch_date, int(country_id), "ongoing"))
+                raw_data = open_file(file)
+                parsed_data = CovidData(**raw_data)
+                data = parsed_data.data
 
-                data = open_file(file)
-                try:
-                    date = data["data"]["date"]
-                    confirmed_cases = data["data"]["confirmed_diff"]
-                    deaths = data["data"]["deaths_diff"]
-                    recovered = data["data"]["recovered_diff"]
+                insert_values = (int(country_id), data.date, data.confirmed_diff,
+                                    data.deaths_diff, data.recovered_diff)
+                db.insert_covid_data(insert_values)
 
-                    insert_values = (int(country_id), date, int(confirmed_cases),
-                                     int(deaths), int(recovered))
-                    db.insert_covid_data(insert_values)
+                status = "processed"
+                p_dir_name = "data/processed/covid_data/"
+            except (ValidationError, KeyError, TypeError) as e:
+                db.logger.warning(f"Transformation has failed for COVID data belonging to \
+                                {country_id}: {e}")
+                pass
 
-                    status = "processed"
-                    p_dir_name = "data/processed/covid_data/"
-                except KeyError:
-                    pass
-
-                move_file(file, p_dir_name, file_name)
-                db.update_transform_log((p_dir_name, file_name, 1, status, log_id))
-
-            except Exception:
-                move_file(file, p_dir_name, file_name)
-                db.update_transform_log((p_dir_name, file_name, 0, status, log_id))
+            move_file(file, p_dir_name, file_name)
+            db.update_transform_log((p_dir_name, file_name, 1, status, log_id))
+            
         else:
             log_id = db.insert_initial_transform_log((batch_date, None, status))
             move_file(file, p_dir_name, file_name)
