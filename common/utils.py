@@ -198,3 +198,10 @@ def get_weather_description(weather_code, csv_file_path="weather_description/wmo
                     return description
     except (FileNotFoundError, KeyError):
         return None
+    
+def is_valid_date(date_string: str) -> bool:
+    try:
+        datetime.strptime(date_string, "%Y-%m-%d")
+        return True
+    except ValueError:
+        return False

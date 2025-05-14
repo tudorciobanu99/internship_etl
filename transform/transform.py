@@ -57,8 +57,7 @@ def process_weather_file(file, countries, db:DataTransformer):
                 status = "processed"
                 p_dir_name = "data/processed/weather_data/"
             except (ValidationError, KeyError, TypeError) as e:
-                db.logger.warning(f"Transformation has failed for weather data belonging to \
-                                   {country_id}: {e}")
+                db.logger.warning(f"Transformation has failed for weather data belonging to {country_id}: {e}")
                 pass
 
             move_file(file, p_dir_name, file_name)
@@ -119,8 +118,7 @@ def process_covid_file(file, countries, db:DataTransformer):
                 status = "processed"
                 p_dir_name = "data/processed/covid_data/"
             except (ValidationError, KeyError, TypeError) as e:
-                db.logger.warning(f"Transformation has failed for COVID data belonging to \
-                                {country_id}: {e}")
+                db.logger.warning(f"Transformation has failed for COVID data belonging to {country_id}: {e}")
                 pass
 
             move_file(file, p_dir_name, file_name)

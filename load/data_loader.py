@@ -46,6 +46,7 @@ class DataLoader(DatabaseConnector):
                   source.latitude, source.longitude, source.hash_value);
         """
         self.execute_query(query)
+        self.logger.info("Merging operation on table dim_country was completed successfully.")
 
     def merge_dim_date(self):
         """
@@ -97,6 +98,7 @@ class DataLoader(DatabaseConnector):
                 source.is_weekend, source.hash_value);
         """
         self.execute_query(query)
+        self.logger.info("Merging operation on table dim_date was completed successfully.")
 
     def merge_dim_weather_description(self):
         """
@@ -126,6 +128,7 @@ class DataLoader(DatabaseConnector):
                 VALUES (source.weather_code, source.weather_description, source.hash_value);
         """
         self.execute_query(query)
+        self.logger.info("Merging operation on table dim_weather_description was completed successfully.")
 
     def merge_fact_covid(self):
         """
@@ -170,6 +173,7 @@ class DataLoader(DatabaseConnector):
                 source.recovered, source.hash_value, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
         """
         self.execute_query(query)
+        self.logger.info("Merging operation on fact_covid_data was completed successfully.")
 
     def merge_fact_weather(self):
         """
@@ -225,3 +229,5 @@ class DataLoader(DatabaseConnector):
                 source.hash_value, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
         """
         self.execute_query(query)
+        self.logger.info("Merging operation on fact_weather_data was completed successfully.")
+

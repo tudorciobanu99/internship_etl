@@ -45,8 +45,7 @@ class DataTransformer(DatabaseConnector):
                 WHERE id = %s;
             """
             self.execute_query(update_query, values)
-            self.logger.info(f"Incomplete transform log record with ID: {log_id} has been updated \
-                             with status: {values[3]}.")
+            self.logger.info(f"Incomplete transform log record with ID: {log_id} has been updated with status: {values[3]}.")
 
     def insert_weather_data(self, values:tuple):
         """
@@ -74,8 +73,7 @@ class DataTransformer(DatabaseConnector):
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
         """
         self.execute_query(query, values)
-        self.logger.info(f"Weather data for country_id: {values[0]} and date: {values[1]} \
-                         has been added to the staging area.")
+        self.logger.info(f"Weather data for country_id: {values[0]} and date: {values[1]} has been added to the staging area.")
 
     def insert_covid_data(self, values:tuple):
         """
@@ -98,5 +96,4 @@ class DataTransformer(DatabaseConnector):
             VALUES (%s, %s, %s, %s, %s);
         """
         self.execute_query(query, values)
-        self.logger.info(f"COVID data for country_id: {values[0]} and date: {values[1]} \
-                         has been added to the staging area.")
+        self.logger.info(f"COVID data for country_id: {values[0]} and date: {values[1]} has been added to the staging area.")
