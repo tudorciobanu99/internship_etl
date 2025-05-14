@@ -134,7 +134,7 @@ def main():
     e_db, t_db, l_db = initialize_database_objects(**db_config)
 
     # Prompts the user to add more countries if necessary
-    add_countries(e_db)
+    # add_countries(e_db)
 
     print('ETL process begins...')
 
