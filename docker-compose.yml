@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: etl_postgres
+    environment:
+      POSTGRES_USER: etl_user
+      POSTGRES_PASSWORD: etl_pass
+      POSTGRES_DB: etl_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init_db:/docker-entrypoint-initdb.d
+      - pg_data:/var/lib/postgresql/data
+    restart: unless-stopped
+  
+volumes:
+  pg_data:

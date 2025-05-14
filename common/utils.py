@@ -113,8 +113,8 @@ def get_file_details(filename):
     """
 
     try:
-        country_code = filename.split("/")[-1].split("_")[2]
-        batch_date = filename.split("/")[-1].split("_")[3].split(".")[0]
+        country_code = filename.split("/")[-1].split("_")[1]
+        batch_date = filename.split("/")[-1].split("_")[2].split(".")[0]
         return country_code, batch_date
     except Exception:
         return None, None
