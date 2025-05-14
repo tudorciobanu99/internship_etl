@@ -1,7 +1,7 @@
 from extract.data_extractor import DataExtractor
 from extract.covid_api import CovidAPI
 from extract.weather_api import WeatherAPI
-from common.utils import save_to_json, today
+from common.utils import save_to_json, today, get_row_count
 
 def e_routine(w_api:WeatherAPI, c_api:CovidAPI, db:DataExtractor, countries, date):
     """
@@ -44,7 +44,7 @@ def e_routine(w_api:WeatherAPI, c_api:CovidAPI, db:DataExtractor, countries, dat
             log_id = db.insert_initial_import_log((date, int(country["id"]),
                                           W_IMP_DIRNAME, w_filename))
             save_to_json(resp_body, W_IMP_DIRNAME, w_filename)
-            w_row_count = 1
+            w_row_count = get_row_count(W_IMP_DIRNAME, w_filename, code_resp, "w")
             import_params = (W_IMP_DIRNAME, w_filename, file_created_date,
                              file_last_modified_date, w_row_count, int(log_id))
             db.update_import_log(import_params)
@@ -61,7 +61,7 @@ def e_routine(w_api:WeatherAPI, c_api:CovidAPI, db:DataExtractor, countries, dat
             log_id = db.insert_initial_import_log((date, int(country["id"]),
                                           C_IMP_DIRNAME, c_file_name))
             save_to_json(resp_body, C_IMP_DIRNAME, c_file_name)
-            c_row_count = 1
+            c_row_count = get_row_count(C_IMP_DIRNAME, c_file_name, code_resp, "c")
             import_params = (C_IMP_DIRNAME, c_file_name, file_created_date,
                              file_last_modified_date, c_row_count, log_id)
             db.update_import_log(import_params)
