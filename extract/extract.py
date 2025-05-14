@@ -1,9 +1,9 @@
 from extract.data_extractor import DataExtractor
 from extract.covid_api import CovidAPI
 from extract.weather_api import WeatherAPI
-from common.utils import save_to_json, get_json_row_count, today
+from common.utils import save_to_json, today
 
-def e_routine(w_api:WeatherAPI, c_api:CovidAPI, db:DataExtractor, countries, date, batch_date):
+def e_routine(w_api:WeatherAPI, c_api:CovidAPI, db:DataExtractor, countries, date):
     """
     Attempts to complete the extract part of the ETL.
     For each given country and API, the process follows the scheme:
@@ -21,13 +21,10 @@ def e_routine(w_api:WeatherAPI, c_api:CovidAPI, db:DataExtractor, countries, dat
         db (DataExtractor object)
         countries (DataFrame): DataFrame created based on the extract.country table.
         date (str): A given date for extraction.
-        batch_date (str): Generally the date at which the extraction occurs.
     """
 
-    w_imp_dir_name = "data/raw/weather_data"
-    c_imp_dir_name = "data/raw/covid_data"
-    w_imp_file_name = "weather_data"
-    c_imp_file_name = "covid_data"
+    W_IMP_DIRNAME = "data/raw/weather_data"
+    C_IMP_DIRNAME = "data/raw/covid_data"
 
     file_created_date = today()
     file_last_modified_date = today()
@@ -43,12 +40,12 @@ def e_routine(w_api:WeatherAPI, c_api:CovidAPI, db:DataExtractor, countries, dat
             api_params = (start_time, end_time, code_resp, error_message, int(api_log_id))
             db.update_api_import_log(api_params)
 
-            w_file_name = w_imp_file_name + "_" + country["code"] + "_" + batch_date + ".json"
-            log_id = db.insert_initial_import_log((batch_date, int(country["id"]),
-                                          w_imp_dir_name, w_file_name))
-            save_to_json(resp_body, w_imp_dir_name, w_file_name)
-            w_row_count = get_json_row_count(w_imp_dir_name, w_file_name)
-            import_params = (w_imp_dir_name, w_file_name, file_created_date,
+            w_filename = "w_" + country["code"] + "_" + date + ".json"
+            log_id = db.insert_initial_import_log((date, int(country["id"]),
+                                          W_IMP_DIRNAME, w_filename))
+            save_to_json(resp_body, W_IMP_DIRNAME, w_filename)
+            w_row_count = 1
+            import_params = (W_IMP_DIRNAME, w_filename, file_created_date,
                              file_last_modified_date, w_row_count, int(log_id))
             db.update_import_log(import_params)
 
@@ -60,12 +57,12 @@ def e_routine(w_api:WeatherAPI, c_api:CovidAPI, db:DataExtractor, countries, dat
             api_params = (start_time, end_time, code_resp, error_message, int(api_log_id))
             db.update_api_import_log(api_params)
 
-            c_file_name = c_imp_file_name + "_" + country["code"] + "_" + batch_date + ".json"
-            log_id = db.insert_initial_import_log((batch_date, int(country["id"]),
-                                          c_imp_dir_name, c_file_name))
-            save_to_json(resp_body, c_imp_dir_name, c_file_name)
-            c_row_count = get_json_row_count(c_imp_dir_name, c_file_name)
-            import_params = (c_imp_dir_name, c_file_name, file_created_date,
+            c_file_name = "c_" + country["code"] + "_" + date + ".json"
+            log_id = db.insert_initial_import_log((date, int(country["id"]),
+                                          C_IMP_DIRNAME, c_file_name))
+            save_to_json(resp_body, C_IMP_DIRNAME, c_file_name)
+            c_row_count = 1
+            import_params = (C_IMP_DIRNAME, c_file_name, file_created_date,
                              file_last_modified_date, c_row_count, log_id)
             db.update_import_log(import_params)
     except Exception:
