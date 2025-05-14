@@ -6,8 +6,8 @@ CREATE TABLE extract.country (
     code VARCHAR(10) NOT NULL, -- (ISO code)
     name VARCHAR(100) NOT NULL,
     latitude DECIMAL(9,6) NOT NULL,
-    latitude DECIMAL(9,6) NOT NULL
-)
+    longitude DECIMAL(9,6) NOT NULL
+);
 
 CREATE TABLE extract.import_log (
     id SERIAL PRIMARY KEY,
@@ -19,13 +19,13 @@ CREATE TABLE extract.import_log (
     file_last_modified_date DATE,
     row_count INT,
     FOREIGN KEY (country_id) REFERENCES extract.country(id)
-)
+);
 
 CREATE TABLE extract.api_info (
     id SERIAL PRIMARY KEY,
     api_name VARCHAR(100) NOT NULL,
     api_base_url VARCHAR(255) NOT NULL
-)
+);
 
 CREATE TABLE extract.api_import_log (
     id SERIAL PRIMARY KEY,
@@ -37,7 +37,7 @@ CREATE TABLE extract.api_import_log (
     error_message TEXT,
     FOREIGN KEY (country_id) REFERENCES extract.country(id),
     FOREIGN KEY (api_id) REFERENCES extract.api_info(id)
-)
+);
 
 INSERT INTO extract.api_info (api_name, api_base_url)
 VALUES ('Weather API', 'https://historical-forecast-api.open-meteo.com/v1/forecast'),

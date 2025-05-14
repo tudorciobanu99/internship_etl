@@ -1,5 +1,6 @@
 import requests
 from common.utils import timestamp
+from common.logger import ETLLogger
 class CovidAPI:
     def __init__(self, api_id, base_url):
         """
@@ -12,55 +13,55 @@ class CovidAPI:
         Attributes:
             api_id (int): The ID of the API.
             base_url (str): The base URL to the API.
+            logger: A logger instance with the proper
+                parametrization done by a ETLLogger object.
         """
 
         self.base_url = base_url
         self.api_id = api_id
+        
+        etl_logger = ETLLogger(self.__class__.__name__)
+        self.logger = etl_logger.get_logger()
 
-    def get_endpoint(self, **params):
-        """
-        Completes the endpoint by joining the base URL and
-            the query parameters.
-
-        Args:
-            **params (dict): The relevant query parameters.
-                It includes the following keys:
-                    iso (str): ISO code for a given country.
-                    date (str): A given date.
-
-        Returns:
-            endpoint (str): The completed endpoint.
-        """
-
-        query_string = "&".join([f"{key}={value}" for key, value in params.items()])
-        endpoint = f"{self.base_url}?{query_string}"
-        return endpoint
-
-    def prepare_covid_params(self, country_code, date):
+    def prepare_params(self, code, date):
         """
         Prepares the query parameters required to complete
             the endpoint.
 
         Args:
-            country_code (str): ISO code for a given country.
+            code (str): ISO code for a given country.
             date (str): A given date.
 
         Returns:
-            covid_params (dict): A dictionary with the above keys.
+            params (dict): A dictionary with the above keys.
         """
 
-        covid_params = {
-                "iso": country_code,
+        params = {
+                "iso": code,
                 "date": date,
             }
-        return covid_params
+        return params
 
-    def send_request(self, country_code, date):
+    def get_endpoint(self, code, date):
+        """
+        Completes the endpoint by joining the base URL and
+            the query parameters.
+
+        Returns:
+            endpoint (str): The completed endpoint.
+        """
+
+        params = self.prepare_params(code, date)
+        query_string = "&".join([f"{key}={value}" for key, value in params.items()])
+        endpoint = f"{self.base_url}?{query_string}"
+        return endpoint
+
+    def send_request(self, code, date):
         """
         Sends a request to the complete endpoint.
 
         Args:
-            country (str): ISO code for a given country.
+            code (str): ISO code for a given country.
             date (str): A given date.
 
         Returns:
@@ -69,14 +70,15 @@ class CovidAPI:
                 the time the API request was sent.
         """
 
-        params = self.prepare_covid_params(country_code, date)
-        complete_url = self.get_endpoint(**params)
+        url = self.get_endpoint(code, date)
 
+        self.logger.info(f"Sending COVID API request for {code} and {date}.")
         start_time = timestamp()
         try:
-            response = requests.get(complete_url, timeout=10)
+            response = requests.get(url, timeout=10)
             return response, start_time
-        except requests.exceptions.RequestException:
+        except requests.exceptions.RequestException as e:
+            self.logger.warning(f"Request failed: {e}")
             return None, start_time
 
     def get_response(self, response):
@@ -110,11 +112,12 @@ class CovidAPI:
             if isinstance(json_response.get("error"), dict):
                 error_message = ', '.join(f"{', '.join(value)}"
                                           for _, value in json_response["error"].items())
-
         except requests.exceptions.JSONDecodeError:
             error_text = response.text
             end_time = timestamp()
             response_body = error_text
             error_message = "Not found"
+
+        self.logger.info(f"Response was received with status code: {code_response}.")
 
         return end_time, code_response, error_message, response_body

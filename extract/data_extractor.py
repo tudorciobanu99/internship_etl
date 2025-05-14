@@ -39,6 +39,7 @@ class DataExtractor(DatabaseConnector):
             RETURNING id;
         """
         log_id = self.execute_query_and_return_id(query, values)
+        self.logger.info(f"Incomplete API import log record with ID: {log_id} has been written.")
         return log_id
 
     def update_api_import_log(self, values:tuple):
@@ -67,6 +68,7 @@ class DataExtractor(DatabaseConnector):
                 WHERE id = %s;
             """
             self.execute_query(update_query, values)
+            self.logger.info(f"Incomplete API import log record with ID: {log_id} has been completed.")
 
     def find_created_date(self, import_dir_name, import_file_name):
         """
@@ -114,6 +116,7 @@ class DataExtractor(DatabaseConnector):
             RETURNING id;
         """
         log_id = self.execute_query_and_return_id(query, values)
+        self.logger.info(f"Incomplete import log record with ID: {log_id} has been written.")
         return log_id
 
     def update_import_log(self, values:tuple):
@@ -143,3 +146,4 @@ class DataExtractor(DatabaseConnector):
                 WHERE id = %s;
             """
             self.execute_query(update_query, values[2:])
+            self.logger.info(f"Incomplete import log record with ID: {log_id} has been completed.")

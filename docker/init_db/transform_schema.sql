@@ -9,7 +9,7 @@ CREATE TABLE transform.transform_log(
     processed_file_name VARCHAR(100),
     row_count INT,
     status VARCHAR(50) NOT NULL
-)
+);
 
 CREATE TABLE transform.weather_data_import(
     id SERIAL PRIMARY KEY,
@@ -23,7 +23,7 @@ CREATE TABLE transform.weather_data_import(
     relative_humidity DECIMAL(5,2) NOT NULL,
     wind_speed DECIMAL(5,2) NOT NULL,
     FOREIGN KEY (country_id) REFERENCES extract.country(id)
-)
+);
 
 CREATE TABLE transform.covid_data_import(
     id SERIAL PRIMARY KEY,
@@ -33,4 +33,4 @@ CREATE TABLE transform.covid_data_import(
     deaths INT NOT NULL,
     recovered INT NOT NULL,
     FOREIGN KEY (country_id) REFERENCES extract.country(id)
-)
+);

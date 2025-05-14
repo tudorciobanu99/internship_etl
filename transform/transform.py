@@ -1,6 +1,6 @@
 from transform.data_transformer import DataTransformer
 from common.utils import (
-    get_json_row_count, open_file, move_file, list_all_files_from_directory,
+    open_file, move_file, list_all_files_from_directory,
     get_weather_description, check_expected_format
 )
 
@@ -64,8 +64,7 @@ def process_weather_file(file, countries, db):
                     pass
 
                 move_file(file, p_dir_name, file_name)
-                row_count = get_json_row_count(p_dir_name, file_name)
-                db.update_transform_log((p_dir_name, file_name, row_count, status, log_id))
+                db.update_transform_log((p_dir_name, file_name, 1, status, log_id))
 
             except Exception:
                 move_file(file, p_dir_name, file_name)
@@ -132,8 +131,7 @@ def process_covid_file(file, countries, db):
                     pass
 
                 move_file(file, p_dir_name, file_name)
-                row_count = get_json_row_count(p_dir_name, file_name)
-                db.update_transform_log((p_dir_name, file_name, row_count, status, log_id))
+                db.update_transform_log((p_dir_name, file_name, 1, status, log_id))
 
             except Exception:
                 move_file(file, p_dir_name, file_name)

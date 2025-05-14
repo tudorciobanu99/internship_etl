@@ -162,7 +162,7 @@ def main():
         countries = e_db.fetch_countries()
 
         # The extract process of the ETL.
-        e_routine(weather_api, covid_api, e_db, countries, date, batch_date)
+        e_routine(weather_api, covid_api, e_db, countries, date)
         print("Extract process completed.")
 
     if args.process in ("transform", "all"):

@@ -46,37 +46,41 @@ def save_to_json(data, import_dir_name, import_file_name):
     with open(file_path, "w", encoding="utf-8") as outfile:
         json.dump(data, outfile, indent=4)
 
-def get_json_row_count(import_dir_name, import_file_name):
+def get_row_count(import_dir_name, import_file_name, status_code, api_type):
     """
     Counts the number of rows in a .json file.
 
     Args:
         import_dir_name (str): The name of the directory.
         import_file_name (str): The name of the file.
+        status_code (int): The HTTP status code.
+        api_type (str): Either "c" (COVID) or "w" (weather).
 
     Returns:
-        1: If the file contains just a string.
-        row_count (int): If the file contains a dictionary,
-            the row count corresponds to the number of keys
-            and sub-keys.
-        0: If the file does not exist or cannot be decoded.
+        1: If the file exists and is associated with a 200
+            HTTP response code.
+        0: If the file does not exist or is associated with a
+            HTTP response code different than 200. Additionally,
+            for the chosen COVID API, for an invalid ISO code, the 
+            response returns a 200 status code, surprisingly. The 
+            response body does not contain any legible information.
+            Therefore, the function returns 0 in this case.
     """
 
-    try:
-        file_path = os.path.join(import_dir_name, import_file_name)
-        data = open_file(file_path)
+    file_path = os.path.join(import_dir_name, import_file_name)
 
-        if isinstance(data, str):
-            return 1
-        elif isinstance(data, dict):
-            row_count = sum(
-                len(value) if isinstance(value, (dict, list)) else 1
-                for value in data.values()
-            )
-            return row_count
-    except (FileNotFoundError, json.JSONDecodeError):
+    if not os.path.exists(file_path):
         return 0
-
+    
+    if status_code != 200:
+        return 0
+    
+    if api_type == "c":
+        data = open_file(file_path)
+        if not data.get("data"):
+            return 0 
+    return 1
+    
 def list_all_files_from_directory(directory):
     """
     Lists all files in a given directory.
@@ -109,8 +113,8 @@ def get_file_details(filename):
     """
 
     try:
-        country_code = filename.split("/")[-1].split("_")[2]
-        batch_date = filename.split("/")[-1].split("_")[3].split(".")[0]
+        country_code = filename.split("/")[-1].split("_")[1]
+        batch_date = filename.split("/")[-1].split("_")[2].split(".")[0]
         return country_code, batch_date
     except Exception:
         return None, None

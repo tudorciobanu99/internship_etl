@@ -1,6 +1,7 @@
 import re
 from psycopg2 import connect, Error
 from pandas import DataFrame
+from common.logger import ETLLogger
 class DatabaseConnector:
     def __init__(self, **db_config):
         """
@@ -18,10 +19,16 @@ class DatabaseConnector:
         Attributes:
             connection: A live connection to the database.
             cursor: A cursor object associated with the connection.
+            logger: A logger instance with the proper
+                parametrization done by a ETLLogger object.
         """
 
         self.connection = connect(**db_config)
         self.cursor = self.connection.cursor()
+
+        etl_logger = ETLLogger(self.__class__.__name__)
+        self.logger = etl_logger.get_logger()
+        self.logger.info("Connection to the database was established!")
 
     def execute_query(self, query, values=None):
         """
@@ -134,14 +141,16 @@ class DatabaseConnector:
             raise ValueError("Invalid table name!")
 
         query = f"TRUNCATE TABLE {table_name} RESTART IDENTITY;"
-
+        
         self.execute_query(query)
+        self.logger.warning(f"Table {table_name} has been truncated!")
 
     def rollback_transaction(self):
         """
         Roll back to the start of any pending transaction.
         """
 
+        self.logger.warning("Rolling back the transaction!")
         self.connection.rollback()
 
     def close_connection(self):
@@ -149,5 +158,6 @@ class DatabaseConnector:
         Closes the cursor and connection.
         """
 
+        self.logger.info("Closing current connection!")
         self.cursor.close()
         self.connection.close()
